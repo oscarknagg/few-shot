@@ -14,21 +14,7 @@ import shutil
 import os
 
 from config import DATA_PATH
-
-
-# Helper functions
-def mkdir(dir):
-    try:
-        os.mkdir(dir)
-    except:
-        pass
-
-
-def rmdir(dir):
-    try:
-        shutil.rmtree(dir)
-    except:
-        pass
+from few_shot.utils import mkdir, rmdir
 
 
 # Clean up folders

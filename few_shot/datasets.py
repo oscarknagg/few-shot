@@ -101,11 +101,11 @@ class OmniglotDataset(Dataset):
         print('Indexing {}...'.format(subset))
         # Quick first pass to find total for tqdm bar
         subset_len = 0
-        for root, folders, files in os.walk(DATA_PATH + '/data/Omniglot/images_{}/'.format(subset)):
+        for root, folders, files in os.walk(DATA_PATH + '/Omniglot/images_{}/'.format(subset)):
             subset_len += len([f for f in files if f.endswith('.png')])
 
         progress_bar = tqdm(total=subset_len)
-        for root, folders, files in os.walk(DATA_PATH + '/data/Omniglot/images_{}/'.format(subset)):
+        for root, folders, files in os.walk(DATA_PATH + '/Omniglot/images_{}/'.format(subset)):
             if len(files) == 0:
                 continue
 
@@ -172,11 +172,11 @@ class MiniImageNet(Dataset):
         print('Indexing {}...'.format(subset))
         # Quick first pass to find total for tqdm bar
         subset_len = 0
-        for root, folders, files in os.walk(DATA_PATH + '/data/miniImageNet/images_{}/'.format(subset)):
+        for root, folders, files in os.walk(DATA_PATH + '/miniImageNet/images_{}/'.format(subset)):
             subset_len += len([f for f in files if f.endswith('.png')])
 
         progress_bar = tqdm(total=subset_len)
-        for root, folders, files in os.walk(DATA_PATH + '/data/miniImageNet/images_{}/'.format(subset)):
+        for root, folders, files in os.walk(DATA_PATH + '/miniImageNet/images_{}/'.format(subset)):
             if len(files) == 0:
                 continue
 

@@ -1,4 +1,20 @@
 import torch
+import os
+import shutil
+
+
+def mkdir(dir):
+    try:
+        os.mkdir(dir)
+    except:
+        pass
+
+
+def rmdir(dir):
+    try:
+        shutil.rmtree(dir)
+    except:
+        pass
 
 
 def pairwise_distances(x: torch.Tensor,

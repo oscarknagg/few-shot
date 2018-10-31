@@ -16,6 +16,7 @@ import shutil
 import os
 
 from config import DATA_PATH
+from few_shot.utils import mkdir, rmdir
 
 
 # Parameters
@@ -23,21 +24,6 @@ dataset_zip_files = ['images_background.zip', 'images_evaluation.zip']
 raw_omniglot_location = DATA_PATH + '/Omniglot_Raw/'
 prepared_omniglot_location = DATA_PATH + '/Omniglot/'
 output_shape = (28, 28)
-
-
-# Helper functions
-def mkdir(dir):
-    try:
-        os.mkdir(dir)
-    except:
-        pass
-
-
-def rmdir(dir):
-    try:
-        shutil.rmtree(dir)
-    except:
-        pass
 
 
 def handle_characters(alphabet_folder, character_folder, rotate):

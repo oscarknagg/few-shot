@@ -7,11 +7,11 @@ from torch import nn
 from torch.utils.data import DataLoader
 from torch.optim import Adam
 
-from voicemap.datasets import OmniglotDataset, MiniImageNet
-from voicemap.models import get_few_shot_encoder
-from voicemap.few_shot import NShotWrapper, prepare_nshot_task, matching_net_eposide, EvaluateFewShot
-from voicemap.train import fit
-from voicemap.callbacks import *
+from few_shot.datasets import OmniglotDataset, MiniImageNet
+from few_shot.models import get_few_shot_encoder
+from few_shot.few_shot import NShotWrapper, prepare_nshot_task, matching_net_eposide, EvaluateFewShot
+from few_shot.train import fit
+from few_shot.callbacks import *
 from config import PATH
 
 

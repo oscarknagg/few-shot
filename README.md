@@ -1,6 +1,7 @@
 # Few-shot learning
 
-Repository containing code to reproduce few-shot learning research.
+The aim for this repository is to contain clean, readable code to
+reproduce few-shot learning research.
 
 This project is written in python 3.6 and Pytorch.
 
@@ -37,13 +38,17 @@ place in `data/miniImageNet/images` and run `scripts/prepare_mini_imagenet.py`
 
 ### Tests (optional)
 
+After adding the datasets run `pytest` in the root directory to run
+all tests.
 
 # Results
 ### Prototypical Networks
 
-Run `experiments/proto_nets.py` to reproduce results from
+Run `experiments/proto_nets.py` to reproduce results from [Prototpyical
+Networks for Few-shot Learning](https://arxiv.org/pdf/1703.05175.pdf)
+(Snell et al).
 
-| Dataset           | Omniglot |     |     |     | miniImageNet|    |
+| Dataset           | Omniglot |     |     |     | miniImageNet|     |
 |-------------------|----------|-----|-----|-----|-------------|-----|
 | **k-way**         | **5**    |     |**2**|     | **5**       |     |
 | **n-shot**        | **1**    |**5**|**1**|**5**| **1**       |**5**|
@@ -51,3 +56,5 @@ Run `experiments/proto_nets.py` to reproduce results from
 | Protonets (repo)  | 95.6     |99.4 |87.8 |98.6 | 39.3        |53.8 |
 
 ### Matching Networks
+
+WIP

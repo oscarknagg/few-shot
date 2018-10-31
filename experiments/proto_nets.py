@@ -8,7 +8,7 @@ import argparse
 
 from few_shot.datasets import OmniglotDataset, MiniImageNet
 from few_shot.models import get_few_shot_encoder
-from few_shot.few_shot import NShotWrapper, proto_net_episode, EvaluateFewShot, prepare_nshot_task
+from few_shot.few_shot import NShotSampler, proto_net_episode, EvaluateFewShot, prepare_nshot_task
 from few_shot.train import fit
 from few_shot.callbacks import *
 from config import PATH
@@ -58,11 +58,17 @@ print(param_str)
 # Create datasets #
 ###################
 background = dataset_class('background')
-background_tasks = NShotWrapper(background, episodes_per_epoch, args.n_train, args.k_train, args.q_train)
-background_taskloader = DataLoader(background_tasks, batch_size=1, num_workers=4)
+background_taskloader = DataLoader(
+    background,
+    batch_sampler=NShotSampler(background, episodes_per_epoch, args.n_train, args.k_train, args.q_train),
+    num_workers=4
+)
 evaluation = dataset_class('evaluation')
-evaluation_tasks = NShotWrapper(evaluation, evaluation_episodes, args.n_test, args.k_test, args.q_test)
-evaluation_taskloader = DataLoader(evaluation_tasks, batch_size=1, num_workers=4)
+evaluation_taskloader = DataLoader(
+    evaluation,
+    batch_sampler=NShotSampler(evaluation, episodes_per_epoch, args.n_test, args.k_test, args.q_test),
+    num_workers=4
+)
 
 
 #########
@@ -100,7 +106,7 @@ callbacks = [
         distance=args.distance
     ),
     ModelCheckpoint(
-        filepath=PATH + f'/models/proto_nets/{param_str}.torch',
+        filepath=PATH + f'/models/proto_nets/{param_str}.pth',
         monitor=f'val_{args.n_test}-shot_{args.k_test}-way_acc'
     ),
     LearningRateScheduler(schedule=lr_schedule),
@@ -118,5 +124,5 @@ fit(
     metrics=['categorical_accuracy'],
     fit_function=proto_net_episode,
     fit_function_kwargs={'n_shot': args.n_train, 'k_way': args.k_train, 'q_queries': args.q_train, 'train': True,
-                         'distance': args.distance}
+                         'distance': args.distance},
 )

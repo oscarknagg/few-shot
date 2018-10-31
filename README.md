@@ -53,7 +53,7 @@ Networks for Few-shot Learning](https://arxiv.org/pdf/1703.05175.pdf)
 | **k-way**         | **5**    |     |**2**|     | **5**       |     |
 | **n-shot**        | **1**    |**5**|**1**|**5**| **1**       |**5**|
 | ProtoNets (paper) | 98.8     |99.7 |96.0 |98.9 | 49.4        |68.2 |
-| Protonets (repo)  | 95.6     |99.4 |87.8 |98.6 | 39.3        |53.8 |
+| Protonets (repo)  | 98.2     |99.4 |87.8 |98.6 | 39.3        |53.8 |
 
 ### Matching Networks
 

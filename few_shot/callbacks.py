@@ -130,7 +130,7 @@ class DefaultCallback(Callback):
 
     def on_batch_end(self, batch, logs=None):
         logs = logs or {}
-        batch_size = logs.get('size', 0)
+        batch_size = logs.get('size', 1) or 1
         self.seen += batch_size
 
         for k, v in logs.items():

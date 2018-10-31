@@ -83,7 +83,7 @@ def fit(model, optimiser, loss_fn, epochs, dataloader, prepare_batch, metrics=No
 
         epoch_logs = {}
         for batch_index, batch in enumerate(dataloader):
-            batch_logs = dict(batch=batch_index, size=batch_size)
+            batch_logs = dict(batch=batch_index, size=(batch_size or 1))
 
             callbacks.on_batch_begin(batch_index, batch_logs)
 

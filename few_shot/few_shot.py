@@ -199,31 +199,22 @@ def matching_net_eposide(model, optimiser, loss_fn, x, y, **kwargs):
 
     # Embed all samples
     embeddings = model.encoder(x)
-    # if kwargs['fce']:
-    #     # LSTM requires input of shape (seq_len, batch, input_size). `support` is of
-    #     # shape (k_way * n_shot, embedding_dim) and we want the LSTM to treat the
-    #     # support set as a sequence so add a single dimension to transform support set
-    #     # to the shape (k_way * n_shot, 1, embedding_dim) and then remove the batch dimension
-    #     # afterwards
-    #     embeddings, _, _ = model.g(embeddings.unsqueeze(1))
-    #     embeddings = embeddings.squeeze(1)
 
-    # Samples are ordered by the NShotWrapper class as follows:
-    # k lots of n support samples from a particular class
-    # k lots of q query samples from those classes
-    support = embeddings[:kwargs['n_shot'] * kwargs['k_way']]
-    queries = embeddings[kwargs['n_shot'] * kwargs['k_way']:]
-
-    # # Optionally apply full context embeddings
+    # Optionally apply full context embeddings
     if kwargs['fce']:
         # LSTM requires input of shape (seq_len, batch, input_size). `support` is of
         # shape (k_way * n_shot, embedding_dim) and we want the LSTM to treat the
         # support set as a sequence so add a single dimension to transform support set
         # to the shape (k_way * n_shot, 1, embedding_dim) and then remove the batch dimension
         # afterwards
-        support, _, _ = model.g(support.unsqueeze(1))
-        support = support.squeeze(1)
-        # support = model.f(queries)
+        embeddings, _, _ = model.g(embeddings.unsqueeze(1))
+        embeddings = embeddings.squeeze(1)
+
+    # Samples are ordered by the NShotWrapper class as follows:
+    # k lots of n support samples from a particular class
+    # k lots of q query samples from those classes
+    support = embeddings[:kwargs['n_shot'] * kwargs['k_way']]
+    queries = embeddings[kwargs['n_shot'] * kwargs['k_way']:]
 
     # Efficiently calculate distance between all queries and all prototypes
     # Output should have shape (q_queries * k_way, k_way) = (num_queries, k_way)
@@ -249,11 +240,8 @@ def matching_net_eposide(model, optimiser, loss_fn, x, y, **kwargs):
 
 def prepare_nshot_task(n, k, q):
     def prepare_nshot_task_(batch):
-        # Strip extra batch dimension from inputs and outputs
-        # The extra batch dimension is a consequence of using the DataLoader
-        # class. However the DataLoader gives easy multiprocessing
         x, y = batch
-        x = x.reshape(x.shape[1:]).double().cuda()
+        x = x.double().cuda()
         # Create dummy 0-(num_classes - 1) label
         y = create_nshot_task_label(k, q).cuda()
         return x, y

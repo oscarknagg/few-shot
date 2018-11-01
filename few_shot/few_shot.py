@@ -219,14 +219,16 @@ def matching_net_eposide(model, optimiser, loss_fn, x, y, **kwargs):
     # Efficiently calculate distance between all queries and all prototypes
     # Output should have shape (q_queries * k_way, k_way) = (num_queries, k_way)
     distances = pairwise_distances(queries, support, kwargs['distance'])
-    logits = -distances
 
-    # First instance is always correct one by construction so the label reflects this
-    # Label is repeated by the number of queries
-    loss = loss_fn(logits, y)
+    # Calculate "attention" as softmax over support-query distances
+    attention = (-distances).softmax(dim=1)
 
-    # Prediction probabilities are softmax over distances
-    y_pred = logits.softmax(dim=1)
+    # Calculate predictions as in equation (1) from Matching Networks
+    # y_hat = \sum_{i=1}^{k} a(x_hat, x_i) y_i
+    y_pred = matching_net_predictions(attention, kwargs['n_shot'], kwargs['k_way'], kwargs['q_queries'])
+
+    # Calculated loss with negative log like likelihood
+    loss = loss_fn(y_pred.log(), y)
 
     if kwargs['train']:
         # Take gradient step
@@ -236,6 +238,36 @@ def matching_net_eposide(model, optimiser, loss_fn, x, y, **kwargs):
         pass
 
     return loss.item(), y_pred
+
+
+def matching_net_predictions(attention: torch.Tensor, n: int, k: int, q: int) -> torch.Tensor:
+    """Calculates Matching Network predictions based on equation (1) of the paper.
+
+    The predictions are the weighted sum of the labels of the support set where the
+    weights are the "attentions" (i.e. softmax over query-support distances) pointing
+    from the query set samples to the support set samples.
+
+    # Arguments
+        attention: torch.Tensor containing softmax over query-support distances.
+            Should be of shape (q * k, k * n)
+        n: Number of support set samples per class, n-shot
+        k: Number of classes in the episode, k-way
+        q: Number of query samples per-class
+    """
+    if attention.shape != (q * k, k * n):
+        raise(ValueError(f'Expecting attention Tensor to have shape (q * k, k * n) = ({q * k, k * n})'))
+
+    # Create one hot label vector for the support set
+    y_onehot = torch.zeros(k * n, k)
+
+    # Unsqueeze to force y to be of shape (K*n, 1) as this
+    # is needed for .scatter()
+    y = create_nshot_task_label(k, n).unsqueeze(-1)
+    y_onehot = y_onehot.scatter(1, y, 1)
+
+    y_pred = torch.mm(attention, y_onehot.cuda().double())
+
+    return y_pred
 
 
 def prepare_nshot_task(n, k, q):

@@ -9,7 +9,7 @@ from torch.optim import Adam
 
 from few_shot.datasets import OmniglotDataset, MiniImageNet
 from few_shot.models import get_few_shot_encoder
-from few_shot.few_shot import NShotWrapper, prepare_nshot_task, matching_net_eposide, EvaluateFewShot
+from few_shot.few_shot import NShotSampler, prepare_nshot_task, matching_net_eposide, EvaluateFewShot
 from few_shot.train import fit
 from few_shot.callbacks import *
 from config import PATH
@@ -26,13 +26,15 @@ torch.backends.cudnn.benchmark = True
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset')
 parser.add_argument('--fce', type=lambda x: x.lower()[0] == 't')
-parser.add_argument('--distance', default='l2')
+parser.add_argument('--distance', default='cosine')
 parser.add_argument('--n-train', default=1, type=int)
 parser.add_argument('--n-test', default=1, type=int)
 parser.add_argument('--k-train', default=5, type=int)
 parser.add_argument('--k-test', default=5, type=int)
 parser.add_argument('--q-train', default=15, type=int)
 parser.add_argument('--q-test', default=1, type=int)
+parser.add_argument('--lstm-size', default=64, type=int)
+parser.add_argument('--lstm-layers', default=1, type=int)
 args = parser.parse_args()
 
 evaluation_episodes = 1000
@@ -43,11 +45,13 @@ if args.dataset == 'omniglot':
     dataset_class = OmniglotDataset
     num_input_channels = 1
     drop_lr_every = 20
+    lstm_input_size = 64
 elif args.dataset == 'miniImageNet':
     n_epochs = 40
     dataset_class = MiniImageNet
     num_input_channels = 3
     drop_lr_every = 40
+    lstm_input_size = 1600
 else:
     raise(ValueError, 'Unsupported dataset')
 
@@ -63,9 +67,9 @@ class BidrectionalLSTM(nn.Module):
         super(BidrectionalLSTM, self).__init__()
         self.num_layers = 1
         self.batch_size = 1
-        self.lstm = nn.LSTM(input_size=64,
-                            num_layers=1,
-                            hidden_size=64,
+        self.lstm = nn.LSTM(input_size=lstm_input_size,
+                            num_layers=args.lstm_layers,
+                            hidden_size=args.lstm_size,
                             bidirectional=True)
 
     def forward(self, inputs):
@@ -107,11 +111,17 @@ class MatchingNetwork(nn.Module):
 # Create datasets #
 ###################
 background = dataset_class('background')
-background_tasks = NShotWrapper(background, episodes_per_epoch, args.n_train, args.k_train, args.q_train)
-background_taskloader = DataLoader(background_tasks, batch_size=1, num_workers=4)
+background_taskloader = DataLoader(
+    background,
+    batch_sampler=NShotSampler(background, episodes_per_epoch, args.n_train, args.k_train, args.q_train),
+    num_workers=4
+)
 evaluation = dataset_class('evaluation')
-evaluation_tasks = NShotWrapper(evaluation, evaluation_episodes, args.n_test, args.k_test, args.q_test)
-evaluation_taskloader = DataLoader(evaluation_tasks, batch_size=1, num_workers=4)
+evaluation_taskloader = DataLoader(
+    evaluation,
+    batch_sampler=NShotSampler(evaluation, episodes_per_epoch, args.n_test, args.k_test, args.q_test),
+    num_workers=4
+)
 
 
 #########
@@ -126,7 +136,7 @@ model.to(device, dtype=torch.double)
 ############
 print(f'Training Matching Network on {args.dataset}...')
 optimiser = Adam(model.parameters(), lr=1e-3)
-loss_fn = torch.nn.CrossEntropyLoss().cuda()
+loss_fn = torch.nn.NLLLoss().cuda()
 
 
 def lr_schedule(epoch, lr):
@@ -150,7 +160,7 @@ callbacks = [
         distance=args.distance
     ),
     ModelCheckpoint(
-        filepath=PATH + f'/models/{param_str}.torch',
+        filepath=PATH + f'/models/matching_nets/{param_str}.pth',
         monitor=f'val_{args.n_test}-shot_{args.k_test}-way_acc'
     ),
     LearningRateScheduler(schedule=lr_schedule),

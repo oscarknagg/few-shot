@@ -5,6 +5,14 @@ reproduce few-shot learning research.
 
 This project is written in python 3.6 and Pytorch.
 
+- [x] Reproduce Prototypical Networks to a few % on Omniglot
+- [x] Reproduce Prototypical Networks to a few % on miniImageNet
+- [ ] Reproduce Matching Networks to a few % on Omniglot
+- [ ] Reproduce Matching Networks to a few % on miniImageNet
+- [ ] Upload pretrained models
+- [ ] Clean up code
+- [ ] Write blog post
+
 # Setup
 ### Requirements
 
@@ -48,13 +56,18 @@ Run `experiments/proto_nets.py` to reproduce results from [Prototpyical
 Networks for Few-shot Learning](https://arxiv.org/pdf/1703.05175.pdf)
 (Snell et al).
 
-| Dataset           | Omniglot |     |     |     | miniImageNet|     |
-|-------------------|----------|-----|-----|-----|-------------|-----|
-| **k-way**         | **5**    |     |**2**|     | **5**       |     |
-| **n-shot**        | **1**    |**5**|**1**|**5**| **1**       |**5**|
-| ProtoNets (paper) | 98.8     |99.7 |96.0 |98.9 | 49.4        |68.2 |
-| Protonets (repo)  | 98.2     |99.4 |87.8 |98.6 | 39.3        |53.8 |
+| Dataset          | Omniglot |     |      |      | miniImageNet|     |
+|------------------|----------|-----|------|------|-------------|-----|
+| **k-way**        | **5**    |**5**|**20**|**20**| **5**       |**5**|
+| **n-shot**       | **1**    |**5**|**1** |**5** | **1**       |**5**|
+| ProtoNets (paper)| 98.8     |99.7 |96.0  |98.9  | 49.4        |68.2 |
+| Protonets (repo) | 98.2     |99.4 |95.8  |98.6  | 48.0        |66.2 |
 
 ### Matching Networks
 
-WIP
+| Dataset             | Omniglot|     |      |      | miniImageNet|     |
+|---------------------|---------|-----|------|------|-------------|-----|
+| **k-way**           | **5**   |**5**|**20**|**20**| **5**       |**5**|
+| **n-shot**          | **1**   |**5**|**1** |**5** | **1**       |**5**|
+| MatchingNets (paper)| 98.1    |98.9 |93.8  |98.5  | 44.2        |57.0 |
+| MatchingNets (repo) |         |     |      |      |             |     |

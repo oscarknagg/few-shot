@@ -147,7 +147,7 @@ class MiniImageNet(Dataset):
 
         # Setup transforms
         self.transform = transforms.Compose([
-            transforms.RandomCrop(224),
+            transforms.CenterCrop(224),
             transforms.Resize(84),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406],

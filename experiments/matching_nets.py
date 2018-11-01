@@ -69,7 +69,7 @@ class BidrectionalLSTM(nn.Module):
         self.batch_size = 1
         self.lstm = nn.LSTM(input_size=lstm_input_size,
                             num_layers=args.lstm_layers,
-                            hidden_size=args.lstm_size,
+                            hidden_size=lstm_input_size,
                             bidirectional=True)
 
     def forward(self, inputs):

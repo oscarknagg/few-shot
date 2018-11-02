@@ -195,7 +195,7 @@ class MiniImageNet(Dataset):
 
 
 class DummyDataset(Dataset):
-    def __init__(self, samples_per_class, n_classes, n_features=2):
+    def __init__(self, samples_per_class=10, n_classes=10, n_features=1):
         self.samples_per_class = samples_per_class
         self.n_classes = n_classes
         self.n_features = n_features

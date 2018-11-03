@@ -207,7 +207,7 @@ def matching_net_eposide(model, optimiser, loss_fn, x, y, **kwargs):
         # support set as a sequence so add a single dimension to transform support set
         # to the shape (k_way * n_shot, 1, embedding_dim) and then remove the batch dimension
         # afterwards
-        embeddings, _, _ = model.g(embeddings.unsqueeze(1))
+        embeddings, _, _ = model.lstm(embeddings.unsqueeze(1))
         embeddings = embeddings.squeeze(1)
 
     # Samples are ordered by the NShotWrapper class as follows:

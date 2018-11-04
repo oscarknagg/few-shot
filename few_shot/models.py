@@ -55,7 +55,7 @@ def get_few_shot_encoder(num_input_channels=1):
 
 class MatchingNetwork(nn.Module):
     def __init__(self, n: int, k: int, q: int, fce: bool, num_input_channels: int,
-                 lstm_layers: int, lstm_input_size: int, device):
+                 lstm_layers: int, lstm_input_size: int, unrolling_steps: int, device):
         super(MatchingNetwork, self).__init__()
         self.n = n
         self.k = k
@@ -64,7 +64,8 @@ class MatchingNetwork(nn.Module):
         self.num_input_channels = num_input_channels
         self.encoder = get_few_shot_encoder(self.num_input_channels)
         if self.fce:
-            self.lstm = BidrectionalLSTM(lstm_input_size, lstm_layers).to(device, dtype=torch.double)
+            self.g = BidrectionalLSTM(lstm_input_size, lstm_layers).to(device, dtype=torch.double)
+            self.f = AttentionLSTM(lstm_input_size, unrolling_steps=3).to(device, dtype=torch.double)
 
     def forward(self, inputs):
         pass
@@ -99,6 +100,39 @@ class BidrectionalLSTM(nn.Module):
 
 
 class AttentionLSTM(nn.Module):
-    def __init__(self, unrolling_steps):
+    def __init__(self, size: int, unrolling_steps: int):
         super(AttentionLSTM, self).__init__()
         self.unrolling_steps = unrolling_steps
+        self.lstm_cell = nn.LSTMCell(input_size=size,
+                                     hidden_size=size)
+
+    def forward(self, support, queries):
+        # Get embedding dimension, d
+        if support.shape[-1] != queries.shape[-1]:
+            raise(ValueError("Support and query set have different embedding dimension!"))
+
+        batch_size = queries.shape[0]
+        embedding_dim = queries.shape[1]
+
+        h_hat = torch.zeros_like(queries).cuda().double()
+        c = torch.zeros(batch_size, embedding_dim).cuda().double()
+
+        for k in range(self.unrolling_steps):
+            # Calculate hidden state cf. equation (4) of appendix A.2
+            h = h_hat + queries
+
+            # Calculate softmax attentions between hidden states and support set embeddings
+            # cf. equation (6) of appendix A.2
+            attentions = torch.mm(h, support.t())
+            attentions = attentions.softmax(dim=1)
+
+            # Calculate readouts from support set embeddings cf. equation (5)
+            readout = torch.mm(attentions, support)
+
+            # Run LSTM cell cf. equation (3)
+            # h_hat, c = self.lstm_cell(queries, (torch.cat([h, readout], dim=1), c))
+            h_hat, c = self.lstm_cell(queries, (h + readout, c))
+
+        h = h_hat + queries
+
+        return h

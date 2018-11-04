@@ -8,8 +8,8 @@ This project is written in python 3.6 and Pytorch.
 - [x] Reproduce Prototypical Networks to a few % on Omniglot
 - [x] Reproduce Prototypical Networks to a few % on miniImageNet
 - [x] Reproduce Matching Networks to a few % on Omniglot
-- [x] Reproduce Matching Networks to a few % on miniImageNet
-- [ ] Correctly implement FCE for Matching Networks
+- [ ] Reproduce Matching Networks to a few % on miniImageNet
+- [x] Correctly implement FCE for Matching Networks
 - [ ] Upload pretrained models
 - [ ] Clean up code
 - [ ] Prettify README

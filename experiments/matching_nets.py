@@ -35,22 +35,21 @@ parser.add_argument('--q-train', default=15, type=int)
 parser.add_argument('--q-test', default=1, type=int)
 parser.add_argument('--lstm-size', default=64, type=int)
 parser.add_argument('--lstm-layers', default=1, type=int)
+parser.add_argument('--unrolling-steps', default=2, type=int)
 args = parser.parse_args()
 
 evaluation_episodes = 1000
 episodes_per_epoch = 100
 
 if args.dataset == 'omniglot':
-    n_epochs = 40
+    n_epochs = 100
     dataset_class = OmniglotDataset
     num_input_channels = 1
-    drop_lr_every = 20
     lstm_input_size = 64
 elif args.dataset == 'miniImageNet':
-    n_epochs = 150
+    n_epochs = 200
     dataset_class = MiniImageNet
     num_input_channels = 3
-    drop_lr_every = 40
     lstm_input_size = 1600
 else:
     raise(ValueError, 'Unsupported dataset')
@@ -65,7 +64,10 @@ param_str = f'{args.dataset}_n={args.n_train}_k={args.k_train}_q={args.q_train}_
 #########
 from few_shot.models import MatchingNetwork
 model = MatchingNetwork(args.n_train, args.k_train, args.q_train, args.fce, num_input_channels,
-                        lstm_layers=args.lstm_layers, lstm_input_size=lstm_input_size, device=device)
+                        lstm_layers=args.lstm_layers,
+                        lstm_input_size=lstm_input_size,
+                        unrolling_steps=args.unrolling_steps,
+                        device=device)
 model.to(device, dtype=torch.double)
 
 
@@ -108,10 +110,10 @@ callbacks = [
     ),
     ModelCheckpoint(
         filepath=PATH + f'/models/matching_nets/{param_str}.pth',
-        # monitor=f'val_{args.n_test}-shot_{args.k_test}-way_acc'
-        monitor=f'val_loss'
+        monitor=f'val_{args.n_test}-shot_{args.k_test}-way_acc',
+        # monitor=f'val_loss',
     ),
-    ReduceLROnPlateau(factor=0.5, monitor=f'val_{args.n_test}-shot_{args.k_test}-way_acc'),
+    ReduceLROnPlateau(patience=20, factor=0.5, monitor=f'val_{args.n_test}-shot_{args.k_test}-way_acc'),
     CSVLogger(PATH + f'/logs/matching_nets/{param_str}.csv'),
 ]
 

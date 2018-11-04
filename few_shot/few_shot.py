@@ -202,6 +202,12 @@ def matching_net_episode(model, optimiser, loss_fn, x, y, **kwargs):
     # Embed all samples
     embeddings = model.encoder(x)
 
+    # Samples are ordered by the NShotWrapper class as follows:
+    # k lots of n support samples from a particular class
+    # k lots of q query samples from those classes
+    support = embeddings[:kwargs['n_shot'] * kwargs['k_way']]
+    queries = embeddings[kwargs['n_shot'] * kwargs['k_way']:]
+
     # Optionally apply full context embeddings
     if kwargs['fce']:
         # LSTM requires input of shape (seq_len, batch, input_size). `support` is of
@@ -209,14 +215,16 @@ def matching_net_episode(model, optimiser, loss_fn, x, y, **kwargs):
         # support set as a sequence so add a single dimension to transform support set
         # to the shape (k_way * n_shot, 1, embedding_dim) and then remove the batch dimension
         # afterwards
-        embeddings, _, _ = model.lstm(embeddings.unsqueeze(1))
-        embeddings = embeddings.squeeze(1)
 
-    # Samples are ordered by the NShotWrapper class as follows:
-    # k lots of n support samples from a particular class
-    # k lots of q query samples from those classes
-    support = embeddings[:kwargs['n_shot'] * kwargs['k_way']]
-    queries = embeddings[kwargs['n_shot'] * kwargs['k_way']:]
+        # Calculate the fully conditional embedding, g, for support set samples as described
+        # in appendix A.2 of the paper. g takes the form of a bidirectional LSTM with a
+        # skip connection from inputs to outputs
+        support, _, _ = model.g(support.unsqueeze(1))
+        support = support.squeeze(1)
+
+        # Calculate the fully conditional embedding, f, for the query set samples as described
+        # in appendix A.1 of the paper.
+        queries = model.f(support, queries)
 
     # Efficiently calculate distance between all queries and all prototypes
     # Output should have shape (q_queries * k_way, k_way) = (num_queries, k_way)

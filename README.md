@@ -74,11 +74,19 @@ Networks for Few-shot Learning](https://arxiv.org/pdf/1703.05175.pdf)
 
 ### Matching Networks
 
+Run `experiments/matching_nets.py` to reproduce results from [Matching
+Networks for One Shot Learning](https://arxiv.org/pdf/1606.04080.pdf)
+(Vinayls et al).
+
+I had trouble reproducing the results of this paper using a cosine
+distance metric but was able to reach similar performace using the L2
+distance metric.
+
 |                     | Omniglot|     |      |      |
 |---------------------|---------|-----|------|------|
 | **k-way**           | **5**   |**5**|**20**|**20**|
 | **n-shot**          | **1**   |**5**|**1** |**5** |
-| Published           | 98.1    |98.9 |93.8  |98.5  |
+| Published (cosine)  | 98.1    |98.9 |93.8  |98.5  |
 | This Repo (cosine)  | 92.0    |92.8 |75.6  |77.8  |
 | This Repo (l2)      | 98.3    |99.8 |92.8  |98.2   |
 
@@ -86,6 +94,6 @@ Networks for Few-shot Learning](https://arxiv.org/pdf/1703.05175.pdf)
 |---------------------|-------------|-----|
 | **k-way**           | **5**       |**5**|
 | **n-shot**          | **1**       |**5**|
-| Published           | 44.2        |57.0 |
+| Published (cosine)  | 44.2        |57.0 |
 | This Repo (cosine)  | 41.3        |48.8 |
 | This Repo (l2)      | 42.4        |54.5 |

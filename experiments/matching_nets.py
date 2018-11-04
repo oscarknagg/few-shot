@@ -9,7 +9,7 @@ from torch.optim import Adam
 
 from few_shot.datasets import OmniglotDataset, MiniImageNet
 from few_shot.models import get_few_shot_encoder
-from few_shot.few_shot import NShotSampler, prepare_nshot_task, matching_net_eposide, EvaluateFewShot
+from few_shot.few_shot import NShotSampler, prepare_nshot_task, matching_net_episode, EvaluateFewShot
 from few_shot.train import fit
 from few_shot.callbacks import *
 from config import PATH
@@ -25,7 +25,7 @@ torch.backends.cudnn.benchmark = True
 ##############
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset')
-parser.add_argument('--fce', type=lambda x: x.lower()[0] == 't')
+parser.add_argument('--fce', type=lambda x: x.lower()[0] == 't')  # Quick hack to extract boolean
 parser.add_argument('--distance', default='cosine')
 parser.add_argument('--n-train', default=1, type=int)
 parser.add_argument('--n-test', default=1, type=int)
@@ -47,7 +47,7 @@ if args.dataset == 'omniglot':
     drop_lr_every = 20
     lstm_input_size = 64
 elif args.dataset == 'miniImageNet':
-    n_epochs = 40
+    n_epochs = 150
     dataset_class = MiniImageNet
     num_input_channels = 3
     drop_lr_every = 40
@@ -55,8 +55,9 @@ elif args.dataset == 'miniImageNet':
 else:
     raise(ValueError, 'Unsupported dataset')
 
-param_str = f'matching_net_{args.dataset}_n={args.n_train}_k={args.k_train}_q={args.q_train}_dist={args.distance}_' \
-            f'fce={args.fce}'
+param_str = f'{args.dataset}_n={args.n_train}_k={args.k_train}_q={args.q_train}_' \
+            f'nv={args.n_test}_kv={args.k_test}_qv={args.q_test}_'\
+            f'dist={args.distance}_fce={args.fce}'
 
 
 #########
@@ -93,17 +94,9 @@ optimiser = Adam(model.parameters(), lr=1e-3)
 loss_fn = torch.nn.NLLLoss().cuda()
 
 
-def lr_schedule(epoch, lr):
-    # Drop lr every 2000 episodes
-    if epoch % drop_lr_every == 0:
-        return lr / 2
-    else:
-        return lr
-
-
 callbacks = [
     EvaluateFewShot(
-        eval_fn=matching_net_eposide,
+        eval_fn=matching_net_episode,
         num_tasks=evaluation_episodes,
         n_shot=args.n_test,
         k_way=args.k_test,
@@ -115,9 +108,10 @@ callbacks = [
     ),
     ModelCheckpoint(
         filepath=PATH + f'/models/matching_nets/{param_str}.pth',
-        monitor=f'val_{args.n_test}-shot_{args.k_test}-way_acc'
+        # monitor=f'val_{args.n_test}-shot_{args.k_test}-way_acc'
+        monitor=f'val_loss'
     ),
-    LearningRateScheduler(schedule=lr_schedule),
+    ReduceLROnPlateau(factor=0.5, monitor=f'val_{args.n_test}-shot_{args.k_test}-way_acc'),
     CSVLogger(PATH + f'/logs/matching_nets/{param_str}.csv'),
 ]
 
@@ -130,7 +124,7 @@ fit(
     prepare_batch=prepare_nshot_task(args.n_train, args.k_train, args.q_train),
     callbacks=callbacks,
     metrics=['categorical_accuracy'],
-    fit_function=matching_net_eposide,
+    fit_function=matching_net_episode,
     fit_function_kwargs={'n_shot': args.n_train, 'k_way': args.k_train, 'q_queries': args.q_train, 'train': True,
                          'fce': args.fce, 'distance': args.distance}
 )

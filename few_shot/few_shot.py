@@ -1,10 +1,12 @@
 from torch.utils.data import Dataset, Sampler
+from torch.nn.utils import clip_grad_norm_
 import numpy as np
 import torch
 
 from few_shot.metrics import categorical_accuracy
 from few_shot.callbacks import Callback
 from few_shot.utils import pairwise_distances
+from config import EPSILON
 
 
 class NShotWrapper(Dataset):
@@ -189,7 +191,7 @@ class EvaluateFewShot(Callback):
         logs[self.metric_name] = totals[self.metric_name] / seen
 
 
-def matching_net_eposide(model, optimiser, loss_fn, x, y, **kwargs):
+def matching_net_episode(model, optimiser, loss_fn, x, y, **kwargs):
     if kwargs['train']:
         # Zero gradients
         model.train()
@@ -227,12 +229,18 @@ def matching_net_eposide(model, optimiser, loss_fn, x, y, **kwargs):
     # y_hat = \sum_{i=1}^{k} a(x_hat, x_i) y_i
     y_pred = matching_net_predictions(attention, kwargs['n_shot'], kwargs['k_way'], kwargs['q_queries'])
 
-    # Calculated loss with negative log like likelihood
-    loss = loss_fn(y_pred.log(), y)
+    # Calculated loss with negative log likelihood
+    # Clip predictions for numerical stability
+    clipped_y_pred = y_pred.clamp(EPSILON, 1 - EPSILON)
+    loss = loss_fn(clipped_y_pred.log(), y)
 
     if kwargs['train']:
-        # Take gradient step
+        # Backpropagate gradients
         loss.backward()
+        # I found training to be quite unstable so I clip the norm
+        # of the gradient to be at most 1
+        clip_grad_norm_(model.parameters(), 1)
+        # Take gradient step
         optimiser.step()
     else:
         pass

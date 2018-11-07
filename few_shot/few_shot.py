@@ -1,5 +1,6 @@
 from torch.utils.data import Dataset, Sampler
 from torch.nn.utils import clip_grad_norm_
+from typing import List, Iterable
 import numpy as np
 import torch
 
@@ -50,21 +51,35 @@ class NShotWrapper(Dataset):
         return self.epoch_length
 
 
-class NShotSampler(Sampler):
-    def __init__(self, dataset, episodes_per_epoch: int, n: int, k: int, q: int):
-        super(NShotSampler, self).__init__(dataset)
-        self.dataset = dataset
-        self.n = n
-        self.k = k
-        self.q = q
+class NShotTaskSampler(Sampler):
+    def __init__(self, dataset,
+                 episodes_per_epoch: int = None,
+                 n: int = None,
+                 k: int = None,
+                 q: int = None,
+                 fixed_tasks: List[Iterable[int]] = None):
+        super(NShotTaskSampler, self).__init__(dataset)
         self.episodes_per_epoch = episodes_per_epoch
+        self.dataset = dataset
+        self.k = k
+        self.n = n
+        self.q = q
+        self.fixed_tasks = fixed_tasks
+        self.i_task = 0
 
     def __len__(self):
         return self.episodes_per_epoch
 
     def __iter__(self):
         for _ in range(self.episodes_per_epoch):
-            episode_classes = np.random.choice(self.dataset.df['class_id'].unique(), size=self.k, replace=False)
+            if self.fixed_tasks is None:
+                # Get random classes
+                episode_classes = np.random.choice(self.dataset.df['class_id'].unique(), size=self.k, replace=False)
+            else:
+                # Loop through classes in fixed_tasks
+                episode_classes = self.fixed_tasks[self.i_task % len(self.fixed_tasks)]
+                self.i_task += 1
+
             df = self.dataset.df[self.dataset.df['class_id'].isin(episode_classes)]
             batch = []
 

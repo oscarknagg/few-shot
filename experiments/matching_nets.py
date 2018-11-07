@@ -8,8 +8,7 @@ from torch.utils.data import DataLoader
 from torch.optim import Adam
 
 from few_shot.datasets import OmniglotDataset, MiniImageNet
-from few_shot.models import get_few_shot_encoder
-from few_shot.few_shot import NShotSampler, prepare_nshot_task, matching_net_episode, EvaluateFewShot
+from few_shot.few_shot import NShotTaskSampler, prepare_nshot_task, matching_net_episode, EvaluateFewShot
 from few_shot.train import fit
 from few_shot.callbacks import *
 from config import PATH
@@ -77,13 +76,13 @@ model.to(device, dtype=torch.double)
 background = dataset_class('background')
 background_taskloader = DataLoader(
     background,
-    batch_sampler=NShotSampler(background, episodes_per_epoch, args.n_train, args.k_train, args.q_train),
+    batch_sampler=NShotTaskSampler(background, episodes_per_epoch, args.n_train, args.k_train, args.q_train),
     num_workers=4
 )
 evaluation = dataset_class('evaluation')
 evaluation_taskloader = DataLoader(
     evaluation,
-    batch_sampler=NShotSampler(evaluation, episodes_per_epoch, args.n_test, args.k_test, args.q_test),
+    batch_sampler=NShotTaskSampler(evaluation, episodes_per_epoch, args.n_test, args.k_test, args.q_test),
     num_workers=4
 )
 

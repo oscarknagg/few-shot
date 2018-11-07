@@ -2,7 +2,7 @@ import unittest
 from torch.utils.data import DataLoader
 import torch
 
-from few_shot.few_shot import compute_prototypes, NShotSampler, matching_net_predictions
+from few_shot.few_shot import compute_prototypes, NShotTaskSampler, matching_net_predictions
 from few_shot.datasets import DummyDataset, OmniglotDataset, MiniImageNet
 from few_shot.models import get_few_shot_encoder
 from few_shot.utils import pairwise_distances
@@ -15,7 +15,7 @@ class TestProtoNets(unittest.TestCase):
 
     def _test_n_k_q_combination(self, n, k, q):
         n_shot_taskloader = DataLoader(self.dataset,
-                                       batch_sampler=NShotSampler(self.dataset, 100, n, k, q))
+                                       batch_sampler=NShotTaskSampler(self.dataset, 100, n, k, q))
 
         # Load a single n-shot, k-way task
         for batch in n_shot_taskloader:
@@ -75,7 +75,7 @@ class TestMatchingNets(unittest.TestCase):
 
     def _test_n_k_q_combination(self, n, k, q):
         n_shot_taskloader = DataLoader(self.dataset,
-                                       batch_sampler=NShotSampler(self.dataset, 100, n, k, q))
+                                       batch_sampler=NShotTaskSampler(self.dataset, 100, n, k, q))
 
         # Load a single n-shot, k-way task
         for batch in n_shot_taskloader:

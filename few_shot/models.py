@@ -53,6 +53,36 @@ def get_few_shot_encoder(num_input_channels=1):
     )
 
 
+def conv_block(in_channels, out_channels):
+    return nn.Sequential(
+        nn.Conv2d(in_channels, out_channels, 3, padding=1),
+        nn.BatchNorm2d(out_channels),
+        nn.ReLU(),
+        nn.MaxPool2d(kernel_size=2, stride=2)
+    )
+
+
+class OmniglotClassifier(nn.Module):
+    def __init__(self, num_input_channels: int, k_way: int):
+        super(OmniglotClassifier, self).__init__()
+        self.conv1 = conv_block(num_input_channels, 64)
+        self.conv2 = conv_block(64, 64)
+        self.conv3 = conv_block(64, 64)
+        self.conv4 = conv_block(64, 64)
+
+        self.logits = nn.Linear(64, k_way)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        x = self.conv4(x)
+
+        x = x.view(x.size(0), -1)
+
+        return self.logits(x)
+
+
 class MatchingNetwork(nn.Module):
     def __init__(self, n: int, k: int, q: int, fce: bool, num_input_channels: int,
                  lstm_layers: int, lstm_input_size: int, unrolling_steps: int, device):

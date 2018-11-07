@@ -4,7 +4,7 @@ import pandas as pd
 from torch.utils.data import DataLoader, Sampler
 
 from few_shot.datasets import *
-from few_shot.few_shot import NShotWrapper, NShotSampler, create_nshot_task_label
+from few_shot.few_shot import NShotTaskSampler, create_nshot_task_label
 
 
 class TestNShotSampler(unittest.TestCase):
@@ -15,7 +15,7 @@ class TestNShotSampler(unittest.TestCase):
     def test_n_shot_sampler(self):
         n, k, q = 2, 4, 3
         n_shot_taskloader = DataLoader(self.dataset,
-                                       batch_sampler=NShotSampler(self.dataset, 100, n, k, q))
+                                       batch_sampler=NShotTaskSampler(self.dataset, 100, n, k, q))
 
         # Load a single n-shot task and check it's properties
         for x, y in n_shot_taskloader:

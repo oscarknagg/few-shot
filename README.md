@@ -102,6 +102,20 @@ metric.
 | This Repo (cosine, FCE)| 42.8        |53.6 |
 | This Repo (l2)         | 46.0        |58.4 |
 
-### Model-Agnostic Meta-Learning
+### Model-Agnostic Meta-Learning (MAML)
 
-WIP
+Max Pooling instead of strided conv as paper specifies.
+
+|                  | Omniglot |     |      |      |
+|------------------|----------|-----|------|------|
+| **k-way**        | **5**    |**5**|**20**|**20**|
+| **n-shot**       | **1**    |**5**|**1** |**5** |
+| Published        | 98.7     |99.9 |95.8  |98.9  |
+| This Repo        | 94.3     |     |      |      |
+
+|                  | miniImageNet|     |
+|------------------|-------------|-----|
+| **k-way**        | **5**       |**5**|
+| **n-shot**       | **1**       |**5**|
+| Published        | 48.1        |63.2 |
+| This Repo        |             |     |

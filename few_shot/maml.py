@@ -1,66 +1,101 @@
 import torch
 
 from few_shot.few_shot import create_nshot_task_label
+from few_shot.metrics import categorical_accuracy
+
+
+def replace_grad(parameter_gradients, parameter_name):
+    def replace_grad_(module):
+        return parameter_gradients[parameter_name]
+
+    return replace_grad_
 
 
 def meta_gradient_step(model, optimiser, loss_fn, x, y, **kwargs):
     # Unpack arguments
-    model, meta_model = model
-    inner_optimiser, meta_optimiser = optimiser
+    n, k, q = kwargs['n_shot'], kwargs['k_way'], kwargs['q_queries']
+    taskloader = kwargs['task_loader']
+    order = kwargs['order']
+    device = kwargs['device']
+    inner_train_steps = kwargs['inner_train_steps']
 
     task_gradients = []
     task_losses = []
-    for meta_batch in range(kwargs['meta_batch_size']):
-        print('META BATCH: ', meta_batch)
+    task_predictions = []
+    for meta_batch in taskloader:
         # Get all batches using NShotSampler.
         # The 'support set' will be uesd to train the model and the 'query set'
         # will be used to calculate meta gradients
-        x, _ = kwargs['taskloader'].__iter__().next()
-        x = x.to(kwargs['device'], dtype=torch.double)
+        x, _ = meta_batch
+        x = x.to(device, dtype=torch.double)
 
-        x_task_train = x[:kwargs['n'] * kwargs['k'] * kwargs['inner_train_steps']].to(kwargs['device'])
-        x_task_val = x[kwargs['n'] * kwargs['k'] * kwargs['inner_train_steps']:]
+        x_task_train = x[:n * k].to(device)
+        x_task_val = x[n * k:]
 
-        # Recreate the fast model using the current meta model weights
-        copy_weights(from_model=meta_model, to_model=model)
+        # Create a fast model using the current meta model weights
+        # TODO: determine num input channels from model or input data
+        fast_model = model.__class__(kwargs['num_input_channels'], k).to(device, dtype=torch.double)
+        copy_weights(from_model=model, to_model=fast_model)
+        fast_opt = torch.optim.SGD(fast_model.parameters(), lr=kwargs['inner_lr'])
 
         # Train the model for `inner_train_steps` iterations
-        for inner_batch in range(kwargs['inner_train_steps']):
-            print('- Inner Batch: ', inner_batch)
+        for inner_batch in range(inner_train_steps):
             # Get batch
-            y = create_nshot_task_label(kwargs['k'], kwargs['n']).to(kwargs['device'])
+            y = create_nshot_task_label(k, n).to(device)
 
             # Perform update of model weights
-            model.train()
-            inner_optimiser.zero_grad()
-            logits = model(x_task_train)
+            fast_model.train()
+            fast_opt.zero_grad()
+            logits = fast_model(x_task_train)
             loss = loss_fn(logits, y)
             loss.backward()
-            inner_optimiser.step()
+            fast_opt.step()
 
         # Do a pass of the model on the validation data from the current task
-        logits = model(x_task_val)
-        y = create_nshot_task_label(kwargs['k'], kwargs['n']).to(kwargs['device'])
+        logits = fast_model(x_task_val)
+        y = create_nshot_task_label(k, n).to(device)
         loss = loss_fn(logits, y)
         loss.backward(retain_graph=True)
 
+        # Get post-update accuracies
+        y_pred = logits.softmax(dim=1)
+        task_predictions.append(y_pred)
+
         # Accumulate losses and gradients
         task_losses.append(loss)
-        grads = torch.autograd.grad(loss, model.parameters(), create_graph=True)
-        named_grads = {name: g for ((name, _), g) in zip(model.named_parameters(), grads)}
+        grads = torch.autograd.grad(loss, fast_model.parameters(), create_graph=True)
+        named_grads = {name: g for ((name, _), g) in zip(fast_model.named_parameters(), grads)}
         task_gradients.append(named_grads)
 
-    # sum_task_gradients = {k: torch.stack([grad[k] for grad in task_gradients]).sum(dim=0)
-    #                       for k in task_gradients[0].keys()}
+        del fast_model
 
-    if kwargs['order'] == 2:
-        summed_task_losses = torch.stack(task_losses).mean()
+    sum_task_gradients = {k: torch.stack([grad[k] for grad in task_gradients]).sum(dim=0)
+                          for k in task_gradients[0].keys()}
 
-        meta_optimiser.zero_grad()
-        summed_task_losses.backward()
-        meta_optimiser.step()
+    if kwargs['train']:
+        if order == 1:
+            hooks = []
+            for name, param in model.named_parameters():
+                hooks.append(
+                    param.register_hook(replace_grad(sum_task_gradients, name))
+                )
 
-    return summed_task_losses
+            model.train()
+            optimiser.zero_grad()
+            # Dummy pass in order to create `loss` variable
+            # Replace dummy gradients with mean task gradients using hooks
+            # TODO: determine dummy data shape automatically
+            logits = model(torch.zeros(k, 1, 28, 28).to(device, dtype=torch.double))
+            loss = loss_fn(logits, create_nshot_task_label(k, n).to(device))
+            loss.backward()
+            optimiser.step()
+
+            for h in hooks:
+                h.remove()
+        else:
+            raise NotImplementedError
+
+    return torch.stack(task_losses).mean().item(), torch.cat(task_predictions)
 
 
 def copy_weights(from_model, to_model):

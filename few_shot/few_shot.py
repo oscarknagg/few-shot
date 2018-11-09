@@ -169,14 +169,14 @@ class EvaluateFewShot(Callback):
         prefix: str. Prefix to identify dataset.
     """
 
-    def __init__(self, eval_fn, num_tasks, n_shot, k_way, q_queries, task_loader, prepare_batch, prefix='val_', **kwargs):
+    def __init__(self, eval_fn, num_tasks, n_shot, k_way, q_queries, taskloader, prepare_batch, prefix='val_', **kwargs):
         super(EvaluateFewShot, self).__init__()
         self.eval_fn = eval_fn
         self.num_tasks = num_tasks
         self.n_shot = n_shot
         self.k_way = k_way
         self.q_queries = q_queries
-        self.taskloader = task_loader
+        self.taskloader = taskloader
         self.prepare_batch = prepare_batch
         self.prefix = prefix
         self.kwargs = kwargs

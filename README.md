@@ -9,9 +9,9 @@ This project is written in python 3.6 and Pytorch.
 - [x] Reproduce Prototypical Networks to a few % on miniImageNet
 - [x] Reproduce Matching Networks to a few % on Omniglot
 - [x] Reproduce Matching Networks to a few % on miniImageNet
-- [x] Correctly implement FCE for Matching Networks
-- [ ] Reproduce MAML to a few % on Omniglot
-- [ ] Reproduce MAML to a few % on miniImageNet
+- [x] Reproduce MAML to a few % on Omniglot
+- [x] Reproduce MAML to a few % on miniImageNet
+- [ ] Implement 2nd order MAML
 - [ ] Upload pretrained models
 - [ ] Clean up code
 - [ ] Prettify README
@@ -111,11 +111,11 @@ Max Pooling instead of strided conv as paper specifies.
 | **k-way**        | **5**    |**5**|**20**|**20**|
 | **n-shot**       | **1**    |**5**|**1** |**5** |
 | Published        | 98.7     |99.9 |95.8  |98.9  |
-| This Repo        | 94.3     |     |      |      |
+| This Repo        | 95.3     |99.4 |93.0  |97.6  |
 
 |                  | miniImageNet|     |
 |------------------|-------------|-----|
 | **k-way**        | **5**       |**5**|
 | **n-shot**       | **1**       |**5**|
 | Published        | 48.1        |63.2 |
-| This Repo        |             |     |
+| This Repo        | 44.0        |61.2 |

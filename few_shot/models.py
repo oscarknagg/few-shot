@@ -62,15 +62,21 @@ def conv_block(in_channels, out_channels):
     )
 
 
-class OmniglotClassifier(nn.Module):
-    def __init__(self, num_input_channels: int, k_way: int):
-        super(OmniglotClassifier, self).__init__()
+class FewShotClassifier(nn.Module):
+    def __init__(self, num_input_channels: int, k_way: int, final_layer_size: int = 64):
+        """
+
+        :param num_input_channels:
+        :param k_way:
+        :param final_layer_size: 64 for Omniglot, 1600 for miniImageNet
+        """
+        super(FewShotClassifier, self).__init__()
         self.conv1 = conv_block(num_input_channels, 64)
         self.conv2 = conv_block(64, 64)
         self.conv3 = conv_block(64, 64)
         self.conv4 = conv_block(64, 64)
 
-        self.logits = nn.Linear(64, k_way)
+        self.logits = nn.Linear(final_layer_size, k_way)
 
     def forward(self, x):
         x = self.conv1(x)

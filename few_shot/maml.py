@@ -1,4 +1,5 @@
 import torch
+from torch.utils.data import Dataset
 
 from few_shot.few_shot import create_nshot_task_label
 from few_shot.metrics import categorical_accuracy
@@ -14,27 +15,25 @@ def replace_grad(parameter_gradients, parameter_name):
 def meta_gradient_step(model, optimiser, loss_fn, x, y, **kwargs):
     # Unpack arguments
     n, k, q = kwargs['n_shot'], kwargs['k_way'], kwargs['q_queries']
-    taskloader = kwargs['task_loader']
     order = kwargs['order']
     device = kwargs['device']
     inner_train_steps = kwargs['inner_train_steps']
+    num_input_channels, height, width = x.shape[2:]
 
     task_gradients = []
     task_losses = []
     task_predictions = []
-    for meta_batch in taskloader:
-        # Get all batches using NShotSampler.
-        # The 'support set' will be uesd to train the model and the 'query set'
-        # will be used to calculate meta gradients
-        x, _ = meta_batch
-        x = x.to(device, dtype=torch.double)
-
-        x_task_train = x[:n * k].to(device)
-        x_task_val = x[n * k:]
+    for meta_batch in x:
+        # By construction x is a 5D tensor of shape:
+        # meta_batch_size, n*k + q*k, num_input_channels, width, height)
+        # Hence when we iterate over the first, meta-batch, dimension we are iterating
+        # x, _ = meta_batch
+        # x = x.to(device, dtype=torch.double)
+        x_task_train = meta_batch[:n * k] #.to(device)
+        x_task_val = meta_batch[n * k:]
 
         # Create a fast model using the current meta model weights
-        # TODO: determine num input channels from model or input data
-        fast_model = model.__class__(kwargs['num_input_channels'], k).to(device, dtype=torch.double)
+        fast_model = model.__class__(num_input_channels, k).to(device, dtype=torch.double)
         copy_weights(from_model=model, to_model=fast_model)
         fast_opt = torch.optim.SGD(fast_model.parameters(), lr=kwargs['inner_lr'])
 
@@ -53,7 +52,7 @@ def meta_gradient_step(model, optimiser, loss_fn, x, y, **kwargs):
 
         # Do a pass of the model on the validation data from the current task
         logits = fast_model(x_task_val)
-        y = create_nshot_task_label(k, n).to(device)
+        y = create_nshot_task_label(k, q).to(device)
         loss = loss_fn(logits, y)
         loss.backward(retain_graph=True)
 
@@ -84,9 +83,8 @@ def meta_gradient_step(model, optimiser, loss_fn, x, y, **kwargs):
             optimiser.zero_grad()
             # Dummy pass in order to create `loss` variable
             # Replace dummy gradients with mean task gradients using hooks
-            # TODO: determine dummy data shape automatically
-            logits = model(torch.zeros(k, 1, 28, 28).to(device, dtype=torch.double))
-            loss = loss_fn(logits, create_nshot_task_label(k, n).to(device))
+            logits = model(torch.zeros(k, num_input_channels, height, width).to(device, dtype=torch.double))
+            loss = loss_fn(logits, create_nshot_task_label(k, 1).to(device))
             loss.backward()
             optimiser.step()
 

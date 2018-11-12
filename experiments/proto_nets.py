@@ -8,7 +8,8 @@ import argparse
 
 from few_shot.datasets import OmniglotDataset, MiniImageNet
 from few_shot.models import get_few_shot_encoder
-from few_shot.few_shot import NShotTaskSampler, proto_net_episode, EvaluateFewShot, prepare_nshot_task
+from few_shot.core import NShotTaskSampler, EvaluateFewShot, prepare_nshot_task
+from few_shot.proto import proto_net_episode
 from few_shot.train import fit
 from few_shot.callbacks import *
 from config import PATH

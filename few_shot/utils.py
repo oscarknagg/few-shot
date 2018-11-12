@@ -53,3 +53,18 @@ def pairwise_distances(x: torch.Tensor,
         return -(expanded_x * expanded_y).sum(dim=2)
     else:
         raise(ValueError('Unsupported similarity function'))
+
+
+def copy_weights(from_model, to_model):
+    """Copies the weights from one model to another model."""
+    if not from_model.__class__ == to_model.__class__:
+        raise(ValueError("Models don't have the same architecture!"))
+
+    for m_from, m_to in zip(from_model.modules(), to_model.modules()):
+        is_linear = isinstance(m_to, torch.nn.Linear)
+        is_conv = isinstance(m_to, torch.nn.Conv2d)
+        is_bn = isinstance(m_to, torch.nn.BatchNorm2d)
+        if is_linear or is_conv or is_bn:
+            m_to.weight.data = m_from.weight.data.clone()
+            if m_to.bias is not None:
+                m_to.bias.data = m_from.bias.data.clone()

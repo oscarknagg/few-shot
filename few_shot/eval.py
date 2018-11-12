@@ -1,6 +1,5 @@
 import torch
 
-from few_shot.models import Bottleneck
 from few_shot.metrics import NAMED_METRICS
 
 

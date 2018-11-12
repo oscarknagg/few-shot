@@ -4,7 +4,7 @@ import pandas as pd
 from torch.utils.data import DataLoader, Sampler
 
 from few_shot.datasets import *
-from few_shot.few_shot import NShotTaskSampler, create_nshot_task_label
+from few_shot.core import NShotTaskSampler, create_nshot_task_label
 
 
 class TestNShotSampler(unittest.TestCase):

@@ -8,7 +8,8 @@ from torch.utils.data import DataLoader
 from torch.optim import Adam
 
 from few_shot.datasets import OmniglotDataset, MiniImageNet
-from few_shot.few_shot import NShotTaskSampler, prepare_nshot_task, matching_net_episode, EvaluateFewShot
+from few_shot.core import NShotTaskSampler, prepare_nshot_task, EvaluateFewShot
+from few_shot.matching import matching_net_episode
 from few_shot.train import fit
 from few_shot.callbacks import *
 from config import PATH

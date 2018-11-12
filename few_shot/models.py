@@ -1,7 +1,11 @@
 from torch import nn
+import torch.nn.functional as F
 import torch
 
 
+##########
+# Layers #
+##########
 class Flatten(nn.Module):
     def forward(self, input):
         return input.view(input.size(0), -1)
@@ -27,38 +31,35 @@ class Bottleneck(nn.Module):
         return self.bottleneck(x)
 
 
-def get_few_shot_encoder(num_input_channels=1):
-    return nn.Sequential(
-        nn.Conv2d(num_input_channels, 64, 3, padding=1),
-        nn.BatchNorm2d(64),
-        nn.ReLU(),
-        nn.MaxPool2d(kernel_size=2, stride=2),
-
-        nn.Conv2d(64, 64, 3, padding=1),
-        nn.BatchNorm2d(64),
-        nn.ReLU(),
-        nn.MaxPool2d(kernel_size=2, stride=2),
-
-        nn.Conv2d(64, 64, 3, padding=1),
-        nn.BatchNorm2d(64),
-        nn.ReLU(),
-        nn.MaxPool2d(kernel_size=2, stride=2),
-
-        nn.Conv2d(64, 64, 3, padding=1),
-        nn.BatchNorm2d(64),
-        nn.ReLU(),
-        nn.MaxPool2d(kernel_size=2, stride=2),
-
-        Flatten(),
-    )
-
-
 def conv_block(in_channels, out_channels):
+    """Returns a Module that performs 3x3 convolution, ReLu activation, 2x2 max pooling."""
     return nn.Sequential(
         nn.Conv2d(in_channels, out_channels, 3, padding=1),
         nn.BatchNorm2d(out_channels),
         nn.ReLU(),
         nn.MaxPool2d(kernel_size=2, stride=2)
+    )
+
+
+def functional_conv_block(x, weights, biases, bn_weights, bn_biases):
+    """Performs 3x3 convolution, ReLu activation, 2x2 max pooling in a functional fashion."""
+    x = F.conv2d(x, weights, biases, padding=1)
+    x = F.batch_norm(x, running_mean=None, running_var=None, weight=bn_weights, bias=bn_biases, training=True)
+    x = F.relu(x)
+    x = F.max_pool2d(x, kernel_size=2, stride=2)
+    return x
+
+
+##########
+# Models #
+##########
+def get_few_shot_encoder(num_input_channels=1):
+    return nn.Sequential(
+        conv_block(num_input_channels, 64),
+        conv_block(64, 64),
+        conv_block(64, 64),
+        conv_block(64, 64),
+        Flatten(),
     )
 
 
@@ -88,6 +89,19 @@ class FewShotClassifier(nn.Module):
 
         return self.logits(x)
 
+    def functional_forward(self, x, weights):
+        """Applies the same forward pass using PyTorch functional operators using a specified set of weights."""
+
+        for block in [1, 2, 3, 4]:
+            x = functional_conv_block(x, weights[f'conv{block}.0.weight'], weights[f'conv{block}.0.bias'],
+                                      weights[f'conv{block}.1.weight'], weights[f'conv{block}.1.bias'])
+
+        x = x.view(x.size(0), -1)
+
+        x = F.linear(x, weights['logits.weight'], weights['logits.bias'])
+
+        return x
+
 
 class MatchingNetwork(nn.Module):
     def __init__(self, n: int, k: int, q: int, fce: bool, num_input_channels: int,
@@ -101,7 +115,7 @@ class MatchingNetwork(nn.Module):
         self.encoder = get_few_shot_encoder(self.num_input_channels)
         if self.fce:
             self.g = BidrectionalLSTM(lstm_input_size, lstm_layers).to(device, dtype=torch.double)
-            self.f = AttentionLSTM(lstm_input_size, unrolling_steps=3).to(device, dtype=torch.double)
+            self.f = AttentionLSTM(lstm_input_size, unrolling_steps=unrolling_steps).to(device, dtype=torch.double)
 
     def forward(self, inputs):
         pass

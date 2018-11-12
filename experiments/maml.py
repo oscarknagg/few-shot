@@ -1,10 +1,11 @@
 import torch
 from torch.utils.data import DataLoader
 from torch import nn
+import torch.nn.functional as F
 import argparse
 
 from few_shot.datasets import OmniglotDataset, MiniImageNet
-from few_shot.few_shot import NShotTaskSampler, create_nshot_task_label, prepare_nshot_task, EvaluateFewShot
+from few_shot.core import NShotTaskSampler, create_nshot_task_label, prepare_nshot_task, EvaluateFewShot
 from few_shot.maml import meta_gradient_step
 from few_shot.models import FewShotClassifier
 from few_shot.train import fit
@@ -27,7 +28,7 @@ parser.add_argument('--q', default=1, type=int)  # Number of examples per class 
 parser.add_argument('--inner-train-steps', default=1, type=int)
 parser.add_argument('--inner-val-steps', default=3, type=int)
 parser.add_argument('--inner-lr', default=0.4, type=float)
-parser.add_argument('--meta-lr', default=0.001, type=float)
+parser.add_argument('--meta-lr', default=0.005, type=float)
 parser.add_argument('--meta-batch-size', default=32, type=int)
 parser.add_argument('--order', default=1, type=int)
 
@@ -38,17 +39,17 @@ if args.dataset == 'omniglot':
     dataset_class = OmniglotDataset
     fc_layer_size = 64
     num_input_channels = 1
-    meta_batches_per_epoch = 100
+    evaluation_meta_batches = 10
 elif args.dataset == 'miniImageNet':
     n_epochs = 150
     dataset_class = MiniImageNet
     fc_layer_size = 1600
     num_input_channels = 3
-    meta_batches_per_epoch = 200
+    evaluation_meta_batches = 20
 else:
     raise(ValueError('Unsupported dataset'))
 
-evaluation_meta_batches = 10
+meta_batches_per_epoch = 100
 
 param_str = f'{args.dataset}_order={args.order}_n={args.n}_k={args.k}_metabatch={args.meta_batch_size}_' \
             f'train_steps={args.inner_train_steps}_val_steps={args.inner_val_steps}'

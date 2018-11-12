@@ -2,7 +2,9 @@ import unittest
 from torch.utils.data import DataLoader
 import torch
 
-from few_shot.few_shot import compute_prototypes, NShotTaskSampler, matching_net_predictions
+from few_shot.core import NShotTaskSampler
+from few_shot.matching import matching_net_predictions
+from few_shot.proto import compute_prototypes
 from few_shot.datasets import DummyDataset, OmniglotDataset, MiniImageNet
 from few_shot.models import get_few_shot_encoder
 from few_shot.utils import pairwise_distances

@@ -1,14 +1,14 @@
 import torch
 from torch.optim import Optimizer
 from torch.nn import Module
-from torch.nn.modules.loss import _Loss as Loss
+from typing import Callable
 
 from few_shot.utils import pairwise_distances
 
 
 def proto_net_episode(model: Module,
                       optimiser: Optimizer,
-                      loss_fn: Loss,
+                      loss_fn: Callable,
                       x: torch.Tensor,
                       y: torch.Tensor,
                       n_shot: int,

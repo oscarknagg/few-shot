@@ -2,17 +2,25 @@
 The `fit` function in this file implements a slightly modified version
 of the Keras `model.fit()` API.
 """
-from torch import nn
+import torch
+from torch.optim import Optimizer
+from torch.nn import Module
 from torch.utils.data import DataLoader
+from typing import Callable, List, Union
 
-from few_shot.callbacks import DefaultCallback, ProgressBarLogger, CallbackList
+from few_shot.callbacks import DefaultCallback, ProgressBarLogger, CallbackList, Callback
 from few_shot.metrics import NAMED_METRICS
 
 
-def gradient_step(model, optimiser, loss_fn, x, y, **kwargs):
+def gradient_step(model: Module, optimiser: Optimizer, loss_fn: Callable, x: torch.Tensor, y: torch.Tensor, **kwargs):
     """Takes a single gradient step.
 
-    TODO: Accumulent gradients for arbitrary effective batch size
+    # Arguments
+        model: Model to be fitted
+        optimiser: Optimiser to calculate gradient step from loss
+        loss_fn: Loss function to calculate between predictions and outputs
+        x: Input samples
+        y: Input targets
     """
     model.train()
     optimiser.zero_grad()
@@ -24,7 +32,16 @@ def gradient_step(model, optimiser, loss_fn, x, y, **kwargs):
     return loss.item(), y_pred
 
 
-def batch_metrics(model, y_pred, y, metrics, batch_logs):
+def batch_metrics(model: Module, y_pred: torch.Tensor, y: torch.Tensor, metrics: List[Union[str, Callable]],
+                  batch_logs: dict):
+    """Calculates metrics for the current training batch
+
+    # Arguments
+        model: Model being fit
+        y_pred: predictions for a particular batch
+        y: labels for a particular batch
+        batch_logs: Dictionary of logs for the current batch
+    """
     model.eval()
     for m in metrics:
         if isinstance(m, str):
@@ -36,8 +53,9 @@ def batch_metrics(model, y_pred, y, metrics, batch_logs):
     return batch_logs
 
 
-def fit(model, optimiser, loss_fn, epochs, dataloader, prepare_batch, metrics=None, callbacks=None, verbose=True,
-        fit_function=gradient_step, fit_function_kwargs={}):
+def fit(model: Module, optimiser: Optimizer, loss_fn: Callable, epochs: int, dataloader: DataLoader,
+        prepare_batch: Callable, metrics: List[Union[str, Callable]] = None, callbacks: List[Callback] = None,
+        verbose: bool =True, fit_function: Callable = gradient_step, fit_function_kwargs: dict = {}):
     """Function to abstract away training loop.
 
     The benefit of this function is that allows training scripts to be much more readable and allows for easy re-use of
@@ -46,16 +64,19 @@ def fit(model, optimiser, loss_fn, epochs, dataloader, prepare_batch, metrics=No
 
     # Arguments
         model: Model to be fitted.
-        optimiser: Optimiser to determine parameter updates from loss
-        loss_fn: Loss function to be reduced
+        optimiser: Optimiser to calculate gradient step from loss
+        loss_fn: Loss function to calculate between predictions and outputs
         epochs: Number of epochs of fitting to be performed
         dataloader: `torch.DataLoader` instance to fit the model to
-        prepare_batch: Function to perform any desired preprocessing
+        prepare_batch: Callable to perform any desired preprocessing
         metrics: Optional list of metrics to evaluate the model with
         callbacks: Additional functionality to incorporate into training such as logging metrics to csv, model
             checkpointing, learning rate scheduling etc... See voicemap.callbacks for more.
         verbose: All print output is muted if this argument is `False`
-        gradient_step: Function for calculating gradients
+        fit_function: Function for calculating gradients. Leave as default for simple supervised training on labelled
+            batches. For more complex training procedures (meta-learning etc...) you will need to write your own
+            fit_function
+        fit_function_kwargs: Keyword arguments to pass to `fit_function`
     """
     # Determine number of samples:
     num_batches = len(dataloader)

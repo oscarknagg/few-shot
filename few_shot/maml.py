@@ -2,8 +2,7 @@ import torch
 from collections import OrderedDict
 from torch.optim import Optimizer
 from torch.nn import Module
-from torch.nn.modules.loss import _Loss as Loss
-from typing import Dict, List
+from typing import Dict, List, Callable
 
 from few_shot.core import create_nshot_task_label
 
@@ -17,7 +16,7 @@ def replace_grad(parameter_gradients, parameter_name):
 
 def meta_gradient_step(model: Module,
                        optimiser: Optimizer,
-                       loss_fn: Loss,
+                       loss_fn: Callable,
                        x: torch.Tensor,
                        y: torch.Tensor,
                        n_shot: int,
@@ -32,19 +31,22 @@ def meta_gradient_step(model: Module,
     Perform a gradient step on a meta-learner.
 
     # Arguments
-        model: Base model of the meta-learner. We
-        optimiser:
-        loss_fn:
-        x:
-        y:
-        n_shot:
-        k_way:
-        q_queries:
-        order:
-        inner_train_steps:
-        inner_lr:
-        train:
-        device:
+        model: Base model of the meta-learner being trained
+        optimiser: Optimiser to calculate gradient step from loss
+        loss_fn: Loss function to calculate between predictions and outputs
+        x: Input samples for all few shot tasks
+        y: Input labels of all few shot tasks
+        n_shot: Number of examples per class in the support set of each task
+        k_way: Number of classes in the few shot classification task of each task
+        q_queries: Number of examples per class in the query set of each task. The query set is used to calculate
+            meta-gradients after applying the update to
+        order: Whether to use 1st order MAML (update meta-learner weights with gradients of the updated weights on the
+            query set) or 2nd order MAML (use 2nd order updates by differentiating through the gradients of the updated
+            weights on the query with respect to the original weights).
+        inner_train_steps: Number of gradient steps to fit the fast weights during each inner update
+        inner_lr: Learning rate used to update the fast weights on the inner update
+        train: Whether to update the meta-learner weights at the end of the episode.
+        device: Device on which to run computation
     """
     channels, height, width = x.shape[2:]
 

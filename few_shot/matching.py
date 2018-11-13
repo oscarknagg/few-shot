@@ -24,7 +24,7 @@ def matching_net_episode(model: Module,
 
     # Arguments
         model: Matching Network to be trained.
-        optimiser: Optimiser to calculate gradient step
+        optimiser: Optimiser to calculate gradient step from loss
         loss_fn: Loss function to calculate between predictions and outputs
         x: Input samples of few shot classification task
         y: Input labels of few shot classification task

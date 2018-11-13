@@ -2,8 +2,15 @@ import torch
 import os
 import shutil
 
+from config import EPSILON
+
 
 def mkdir(dir):
+    """Create a directory, ignoring exceptions
+
+    # Arguments:
+        dir: Path of directory to create
+    """
     try:
         os.mkdir(dir)
     except:
@@ -11,6 +18,11 @@ def mkdir(dir):
 
 
 def rmdir(dir):
+    """Recursively remove a directory and contents, ignoring exceptions
+
+   # Arguments:
+       dir: Path of directory to recursively remove
+   """
     try:
         shutil.rmtree(dir)
     except:
@@ -38,8 +50,8 @@ def pairwise_distances(x: torch.Tensor,
         ).pow(2).sum(dim=2)
         return distances
     elif matching_fn == 'cosine':
-        normalised_x = x / (x.pow(2).sum(dim=1, keepdim=True).sqrt() + 1e-8)
-        normalised_y = y / (y.pow(2).sum(dim=1, keepdim=True).sqrt() + 1e-8)
+        normalised_x = x / (x.pow(2).sum(dim=1, keepdim=True).sqrt() + EPSILON)
+        normalised_y = y / (y.pow(2).sum(dim=1, keepdim=True).sqrt() + EPSILON)
 
         expanded_x = normalised_x.unsqueeze(1).expand(n_x, n_y, -1)
         expanded_y = normalised_y.unsqueeze(0).expand(n_x, n_y, -1)
@@ -55,8 +67,13 @@ def pairwise_distances(x: torch.Tensor,
         raise(ValueError('Unsupported similarity function'))
 
 
-def copy_weights(from_model, to_model):
-    """Copies the weights from one model to another model."""
+def copy_weights(from_model: torch.nn.Module, to_model: torch.nn.Module):
+    """Copies the weights from one model to another model.
+
+    # Arguments:
+        from_model: Model from which to source weights
+        to_model: Model which will receive weights
+    """
     if not from_model.__class__ == to_model.__class__:
         raise(ValueError("Models don't have the same architecture!"))
 

@@ -19,7 +19,20 @@ def proto_net_episode(model: Module,
     """Performs a single training episode for a Prototypical Network.
 
     # Arguments
-        model:
+        model: Prototypical Network to be trained.
+        optimiser: Optimiser to calculate gradient step
+        loss_fn: Loss function to calculate between predictions and outputs. Should be cross-entropy
+        x: Input samples of few shot classification task
+        y: Input labels of few shot classification task
+        n_shot: Number of examples per class in the support set
+        k_way: Number of classes in the few shot classification task
+        q_queries: Number of examples per class in the query set
+        distance: Distance metric to use when calculating distance between class prototypes and queries
+        train: Whether (True) or not (False) to perform a parameter update
+
+    # Returns
+        loss: Loss of the Prototypical Network on this task
+        y_pred: Predicted class probabilities for the query set on this task
     """
     if train:
         # Zero gradients
@@ -67,7 +80,11 @@ def compute_prototypes(support: torch.Tensor, k: int, n: int) -> torch.Tensor:
             dimension.
         k: int. "k-way" i.e. number of classes in the classification task
         n: int. "n-shot" of the classification task
+
+    # Returns
+        class_prototypes: Prototypes aka mean embeddings for each class
     """
     # Reshape so the first dimension indexes by class then take the mean
     # along that dimension to generate the "prototypes" for each class
-    return support.reshape(k, n, -1).mean(dim=1)
+    class_prototypes = support.reshape(k, n, -1).mean(dim=1)
+    return class_prototypes

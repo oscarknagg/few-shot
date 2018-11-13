@@ -7,32 +7,43 @@ import torch
 # Layers #
 ##########
 class Flatten(nn.Module):
+    """Converts N-dimensional Tensor of shape [batch_size, d1, d2, ..., dn] to 2-dimensional Tensor
+    of shape [batch_size, d1*d2*...*dn].
+
+    # Arguments
+        input: Input tensor
+    """
     def forward(self, input):
         return input.view(input.size(0), -1)
 
 
 class GlobalMaxPool1d(nn.Module):
+    """Performs global max pooling over the entire length of a batched 1D tensor
+
+    # Arguments
+        input: Input tensor
+    """
     def forward(self, input):
         return nn.functional.max_pool1d(input, kernel_size=input.size()[2:]).view(-1, input.size(1))
 
 
 class GlobalAvgPool2d(nn.Module):
+    """Performs global average pooling over the entire height and width of a batched 2D tensor
+
+    # Arguments
+        input: Input tensor
+    """
     def forward(self, input):
         return nn.functional.avg_pool2d(input, kernel_size=input.size()[2:]).view(-1, input.size(1))
 
 
-class Bottleneck(nn.Module):
-    """Gets bottleneck features from an nn.Sequential classifier."""
-    def __init__(self, model):
-        super(Bottleneck, self).__init__()
-        self.bottleneck = nn.Sequential(*model[:-1])
-
-    def forward(self, x):
-        return self.bottleneck(x)
-
-
 def conv_block(in_channels, out_channels):
-    """Returns a Module that performs 3x3 convolution, ReLu activation, 2x2 max pooling."""
+    """Returns a Module that performs 3x3 convolution, ReLu activation, 2x2 max pooling.
+
+    # Arguments
+        in_channels:
+        out_channels
+    """
     return nn.Sequential(
         nn.Conv2d(in_channels, out_channels, 3, padding=1),
         nn.BatchNorm2d(out_channels),
@@ -54,6 +65,12 @@ def functional_conv_block(x, weights, biases, bn_weights, bn_biases):
 # Models #
 ##########
 def get_few_shot_encoder(num_input_channels=1):
+    """Creates a few shot encoder as used in Matching and Prototypical Networks
+
+    # Arguments:
+        num_input_channels: Number of color channels the model expects input data to contain. Omniglot = 1,
+            miniImageNet = 3
+    """
     return nn.Sequential(
         conv_block(num_input_channels, 64),
         conv_block(64, 64),
@@ -65,11 +82,16 @@ def get_few_shot_encoder(num_input_channels=1):
 
 class FewShotClassifier(nn.Module):
     def __init__(self, num_input_channels: int, k_way: int, final_layer_size: int = 64):
-        """
+        """Creates a few shot classifier as used in MAML.
 
-        :param num_input_channels:
-        :param k_way:
-        :param final_layer_size: 64 for Omniglot, 1600 for miniImageNet
+        This network should be identical to the one created by `get_few_shot_encoder` but with a
+        clasification layer on top.
+
+            # Arguments:
+                num_input_channels: Number of color channels the model expects input data to contain. Omniglot = 1,
+                    miniImageNet = 3
+                k_way: Number of classes the model will discriminate between
+                final_layer_size: 64 for Omniglot, 1600 for miniImageNet
         """
         super(FewShotClassifier, self).__init__()
         self.conv1 = conv_block(num_input_channels, 64)
@@ -105,7 +127,23 @@ class FewShotClassifier(nn.Module):
 
 class MatchingNetwork(nn.Module):
     def __init__(self, n: int, k: int, q: int, fce: bool, num_input_channels: int,
-                 lstm_layers: int, lstm_input_size: int, unrolling_steps: int, device):
+                 lstm_layers: int, lstm_input_size: int, unrolling_steps: int, device: torch.device):
+        """Creates a Matching Network as described in Vinyals et al.
+
+        # Arguments:
+            n: Number of examples per class in the support set
+            k: Number of classes in the few shot classification task
+            q: Number of examples per class in the query set
+            fce: Whether or not to us fully conditional embeddings
+            num_input_channels: Number of color channels the model expects input data to contain. Omniglot = 1,
+                miniImageNet = 3
+            lstm_layers: Number of LSTM layers in the bidrectional LSTM g that embeds the support set (fce = True)
+            lstm_input_size: Input size for the bidirectional and Attention LSTM. This is determined by the embedding
+                dimension of the few shot encoder which is in turn determined by the size of the input data. Hence we
+                have Omniglot -> 64, miniImageNet -> 1600.
+            unrolling_steps: Number of unrolling steps to run the Attention LSTM
+            device: Device on which to run computation
+        """
         super(MatchingNetwork, self).__init__()
         self.n = n
         self.k = k
@@ -122,10 +160,15 @@ class MatchingNetwork(nn.Module):
 
 
 class BidrectionalLSTM(nn.Module):
-    """Bidirectional LSTM used to generate fully conditional embeddings (FCE) as described
-    in the Matching Networks paper.
-    """
     def __init__(self, size: int, layers: int):
+        """Bidirectional LSTM used to generate fully conditional embeddings (FCE) of the support set as described
+        in the Matching Networks paper.
+
+        # Arguments
+            size: Size of input and hidden layers. These are constrained to be the same in order to implement the skip
+                connection described in Appendix A.2
+            layers: Number of LSTM layers
+        """
         super(BidrectionalLSTM, self).__init__()
         self.num_layers = layers
         self.batch_size = 1
@@ -151,6 +194,15 @@ class BidrectionalLSTM(nn.Module):
 
 class AttentionLSTM(nn.Module):
     def __init__(self, size: int, unrolling_steps: int):
+        """Attentional LSTM used to generate fully conditional embeddings (FCE) of the query set as described
+        in the Matching Networks paper.
+
+        # Arguments
+            size: Size of input and hidden layers. These are constrained to be the same in order to implement the skip
+                connection described in Appendix A.2
+            unrolling_steps: Number of steps of attention over the support set to compute. Analogous to number of
+                layers in a regular LSTM
+        """
         super(AttentionLSTM, self).__init__()
         self.unrolling_steps = unrolling_steps
         self.lstm_cell = nn.LSTMCell(input_size=size,

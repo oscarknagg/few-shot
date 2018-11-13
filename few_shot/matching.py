@@ -20,6 +20,25 @@ def matching_net_episode(model: Module,
                          distance: str,
                          fce: bool,
                          train: bool):
+    """Performs a single training episode for a Matching Network.
+
+    # Arguments
+        model: Matching Network to be trained.
+        optimiser: Optimiser to calculate gradient step
+        loss_fn: Loss function to calculate between predictions and outputs
+        x: Input samples of few shot classification task
+        y: Input labels of few shot classification task
+        n_shot: Number of examples per class in the support set
+        k_way: Number of classes in the few shot classification task
+        q_queries: Number of examples per class in the query set
+        distance: Distance metric to use when calculating distance between support and query set samples
+        fce: Whether or not to us fully conditional embeddings
+        train: Whether (True) or not (False) to perform a parameter update
+
+    # Returns
+        loss: Loss of the Matching Network on this task
+        y_pred: Predicted class probabilities for the query set on this task
+    """
     if train:
         # Zero gradients
         model.train()
@@ -95,6 +114,9 @@ def matching_net_predictions(attention: torch.Tensor, n: int, k: int, q: int) ->
         n: Number of support set samples per class, n-shot
         k: Number of classes in the episode, k-way
         q: Number of query samples per-class
+
+    # Returns
+        y_pred: Predicted class probabilities
     """
     if attention.shape != (q * k, k * n):
         raise(ValueError(f'Expecting attention Tensor to have shape (q * k, k * n) = ({q * k, k * n})'))

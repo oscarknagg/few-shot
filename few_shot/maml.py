@@ -3,6 +3,7 @@ from collections import OrderedDict
 from torch.optim import Optimizer
 from torch.nn import Module
 from torch.nn.modules.loss import _Loss as Loss
+from typing import Dict, List
 
 from few_shot.core import create_nshot_task_label
 
@@ -85,7 +86,7 @@ def meta_gradient_step(model: Module,
 
         # Accumulate losses and gradients
         task_losses.append(loss)
-        gradients = torch.autograd.grad(loss, fast_weights.values())
+        gradients = torch.autograd.grad(loss, fast_weights.values(), create_graph=True if order == 2 else False)
         named_grads = {name: g for ((name, _), g) in zip(fast_weights.items(), gradients)}
         task_gradients.append(named_grads)
 
@@ -121,3 +122,41 @@ def meta_gradient_step(model: Module,
             raise ValueError('Order must be either 1 or 2.')
 
     return torch.stack(task_losses).mean().item(), torch.cat(task_predictions)
+
+
+# def apply_meta_update(order: int, meta_model: Module, loss_fn: Loss, optimiser: Optimizer,
+#                       k_way: int, channels: int, height: int, width: int,
+#                       task_gradients: List[Dict[str, torch.Tensor]], task_losses: List[float],
+#                       device: torch.device):
+#     """"""
+#     if order == 1:
+#         sum_task_gradients = {k: torch.stack([grad[k] for grad in task_gradients]).mean(dim=0)
+#                               for k in task_gradients[0].keys()}
+#         hooks = []
+#         for name, param in meta_model.named_parameters():
+#             hooks.append(
+#                 param.register_hook(replace_grad(sum_task_gradients, name))
+#             )
+#
+#         meta_model.train()
+#         optimiser.zero_grad()
+#         # Dummy pass in order to create `loss` variable
+#         # Replace dummy gradients with mean task gradients using hooks
+#         logits = meta_model(torch.zeros(k_way, channels, height, width).to(device, dtype=torch.double))
+#         loss = loss_fn(logits, create_nshot_task_label(k_way, 1).to(device))
+#         loss.backward()
+#         optimiser.step()
+#
+#         for h in hooks:
+#             h.remove()
+#
+#     elif order == 2:
+#         meta_model.train()
+#         optimiser.zero_grad()
+#         meta_batch_loss = torch.stack(task_losses).mean()
+#         meta_batch_loss.backward()
+#         optimiser.step()
+#     else:
+#         raise ValueError('Order must be either 1 or 2.')
+#
+#     return meta_batch_loss

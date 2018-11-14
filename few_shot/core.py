@@ -1,5 +1,5 @@
-from torch.utils.data import Dataset, Sampler
-from typing import List, Iterable
+from torch.utils.data import Sampler
+from typing import List, Iterable, Callable, Tuple
 import numpy as np
 import torch
 
@@ -7,55 +7,33 @@ from few_shot.metrics import categorical_accuracy
 from few_shot.callbacks import Callback
 
 
-class NShotWrapper(Dataset):
-    """Wraps one of the two Dataset classes to create a new Dataset that returns n-shot, k-way, q-query tasks."""
-    def __init__(self, dataset, epoch_length, n, k, q):
-        self.dataset = dataset
-        self.epoch_length = epoch_length
-        self.n_shot = n
-        self.k_way = k
-        self.q_queries = q
-
-    def __getitem__(self, item):
-        """Get a single n-shot, k-way, q-query task."""
-        # Select classes
-        episode_classes = np.random.choice(self.dataset.df['class_id'].unique(), size=self.k_way, replace=False)
-        df = self.dataset.df[self.dataset.df['class_id'].isin(episode_classes)]
-        batch = []
-        labels = []
-
-        support_k = {k: None for k in episode_classes}
-        for k in episode_classes:
-            # Select support examples
-            support = df[df['class_id'] == k].sample(self.n_shot)
-            support_k[k] = support
-
-            for i, s in support.iterrows():
-                x, y = self.dataset[s['id']]
-                batch.append(x)
-                labels.append(k)
-
-        for k in episode_classes:
-            query = df[(df['class_id'] == k) & (~df['id'].isin(support_k[k]['id']))].sample(self.q_queries)
-            for i, q in query.iterrows():
-                x, y = self.dataset[q['id']]
-                batch.append(x)
-                labels.append(k)
-
-        return np.stack(batch), np.array(labels)
-
-    def __len__(self):
-        return self.epoch_length
-
-
 class NShotTaskSampler(Sampler):
-    def __init__(self, dataset,
+    def __init__(self,
+                 dataset: torch.utils.data.Dataset,
                  episodes_per_epoch: int = None,
                  n: int = None,
                  k: int = None,
                  q: int = None,
                  num_tasks: int = 1,
                  fixed_tasks: List[Iterable[int]] = None):
+        """PyTorch Sampler subclass that generates batches of n-shot, k-way, q-query tasks.
+
+        Each n-shot task contains a "support set" of `k` sets of `n` samples and a "query set" of `k` sets
+        of `q` samples. The support set and the query set are all grouped into one Tensor such that the first n * k
+        samples are from the support set while the remaining q * k samples are from the query set.
+
+        The support and query sets are sampled such that they are disjoint i.e. do not contain overlapping samples.
+
+        # Arguments
+            dataset: Instance of torch.utils.data.Dataset from which to draw samples
+            episodes_per_epoch: Arbitrary number of batches of n-shot tasks to generate in one epoch
+            n_shot: int. Number of samples for each class in the n-shot classification tasks.
+            k_way: int. Number of classes in the n-shot classification tasks.
+            q_queries: int. Number query samples for each class in the n-shot classification tasks.
+            num_tasks: Number of n-shot tasks to group into a single batch
+            fixed_tasks: If this argument is specified this Sampler will always generate tasks from
+                the specified classes
+        """
         super(NShotTaskSampler, self).__init__(dataset)
         self.episodes_per_epoch = episodes_per_epoch
         self.dataset = dataset
@@ -110,7 +88,8 @@ class EvaluateFewShot(Callback):
     """Evaluate a network on  an n-shot, k-way classification tasks after every epoch.
 
     # Arguments
-        eval_fn: proto_net_episode or matching_net_episode
+        eval_fn: Callable to perform few-shot classification. Examples include `proto_net_episode`,
+            `matching_net_episode` and `meta_gradient_step` (MAML).
         num_tasks: int. Number of n-shot classification tasks to evaluate the model with.
         n_shot: int. Number of samples for each class in the n-shot classification tasks.
         k_way: int. Number of classes in the n-shot classification tasks.
@@ -120,7 +99,16 @@ class EvaluateFewShot(Callback):
         prefix: str. Prefix to identify dataset.
     """
 
-    def __init__(self, eval_fn, num_tasks, n_shot, k_way, q_queries, taskloader, prepare_batch, prefix='val_', **kwargs):
+    def __init__(self,
+                 eval_fn: Callable,
+                 num_tasks: int,
+                 n_shot: int,
+                 k_way: int,
+                 q_queries: int,
+                 taskloader: int,
+                 prepare_batch: Callable,
+                 prefix: str = 'val_',
+                 **kwargs):
         super(EvaluateFewShot, self).__init__()
         self.eval_fn = eval_fn
         self.num_tasks = num_tasks
@@ -157,8 +145,22 @@ class EvaluateFewShot(Callback):
         logs[self.metric_name] = totals[self.metric_name] / seen
 
 
-def prepare_nshot_task(n, k, q):
-    def prepare_nshot_task_(batch):
+def prepare_nshot_task(n: int, k: int, q: int) -> Callable:
+    """Typical n-shot task preprocessing.
+
+    # Arguments
+        n: Number of samples for each class in the n-shot classification task
+        k: Number of classes in the n-shot classification task
+        q: Number of query samples for each class in the n-shot classification task
+
+    # Returns
+        prepare_nshot_task_: A Callable that processes a few shot tasks with specified n, k and q
+    """
+    def prepare_nshot_task_(batch: Tuple[torch.Tensor, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Create 0-k label and move to GPU.
+
+        TODO: Move to arbitrary device
+        """
         x, y = batch
         x = x.double().cuda()
         # Create dummy 0-(num_classes - 1) label
@@ -168,5 +170,20 @@ def prepare_nshot_task(n, k, q):
     return prepare_nshot_task_
 
 
-def create_nshot_task_label(k, q):
-    return torch.arange(0, k, 1 / q).long()
+def create_nshot_task_label(k: int, q: int) -> torch.Tensor:
+    """Creates an n-shot task label.
+
+    Label has the structure:
+        [0]*q + [1]*q + ... + [k-1]*q
+
+    # TODO: Test this
+
+    # Arguments
+        k: Number of classes in the n-shot classification task
+        q: Number of query samples for each class in the n-shot classification task
+
+    # Returns
+        y: Label vector for n-shot task of shape [q * k, ]
+    """
+    y = torch.arange(0, k, 1 / q).long()
+    return y

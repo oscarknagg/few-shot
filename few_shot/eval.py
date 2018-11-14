@@ -17,8 +17,8 @@ def evaluate(model: Module, dataloader: DataLoader, prepare_batch: Callable, met
         metrics: List of metrics to evaluate the model with. Metrics must either be a named metric (see `metrics.py`) or
             a Callable that takes predictions and ground truth labels and returns a scalar value
         loss_fn: Loss function to calculate over the dataset
-        prefix: Prefix to prepend to the name of each metric. Defaults to 'val_' as it is assumed that you are iterating
-            over a validation dataset
+        prefix: Prefix to prepend to the name of each metric - used to identify the dataset. Defaults to 'val_' as
+            it is typical to evaluate on a held-out validation dataset
         suffix: Suffix to append to the name of each metric.
     """
     logs = {}

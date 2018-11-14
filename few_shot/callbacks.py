@@ -149,7 +149,6 @@ class DefaultCallback(Callback):
 
 class ProgressBarLogger(Callback):
     """TQDM progress bar that displays the running average of loss and other metrics."""
-
     def __init__(self):
         super(ProgressBarLogger, self).__init__()
 

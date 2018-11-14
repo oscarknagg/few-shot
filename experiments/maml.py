@@ -31,6 +31,7 @@ parser.add_argument('--inner-lr', default=0.4, type=float)
 parser.add_argument('--meta-lr', default=0.005, type=float)
 parser.add_argument('--meta-batch-size', default=32, type=int)
 parser.add_argument('--order', default=1, type=int)
+parser.add_argument('--activation', default='relu', type=str)
 
 args = parser.parse_args()
 
@@ -52,7 +53,7 @@ else:
 meta_batches_per_epoch = 100
 
 param_str = f'{args.dataset}_order={args.order}_n={args.n}_k={args.k}_metabatch={args.meta_batch_size}_' \
-            f'train_steps={args.inner_train_steps}_val_steps={args.inner_val_steps}'
+            f'train_steps={args.inner_train_steps}_val_steps={args.inner_val_steps}_act={args.activation}'
 print(param_str)
 
 
@@ -112,7 +113,6 @@ callbacks = [
         # MAML kwargs
         inner_train_steps=args.inner_val_steps,
         inner_lr=args.inner_lr,
-        num_input_channels=num_input_channels,
         device=device,
         order=args.order,
     ),

@@ -37,26 +37,40 @@ class GlobalAvgPool2d(nn.Module):
         return nn.functional.avg_pool2d(input, kernel_size=input.size()[2:]).view(-1, input.size(1))
 
 
-def conv_block(in_channels, out_channels):
+def conv_block(in_channels, out_channels, activation='relu'):
     """Returns a Module that performs 3x3 convolution, ReLu activation, 2x2 max pooling.
 
     # Arguments
         in_channels:
         out_channels
     """
-    return nn.Sequential(
-        nn.Conv2d(in_channels, out_channels, 3, padding=1),
-        nn.BatchNorm2d(out_channels),
-        nn.ReLU(),
-        nn.MaxPool2d(kernel_size=2, stride=2)
-    )
+    if activation == 'relu':
+        return nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, 3, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2)
+        )
+    elif activation == 'selu':
+        return nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, 3, padding=1),
+            nn.SELU(),
+            nn.MaxPool2d(kernel_size=2, stride=2)
+        )
+    else:
+        raise ValueError('Unsupported activation.')
 
 
-def functional_conv_block(x, weights, biases, bn_weights, bn_biases):
+def functional_conv_block(x, weights, biases, bn_weights, bn_biases, activation: str = 'relu'):
     """Performs 3x3 convolution, ReLu activation, 2x2 max pooling in a functional fashion."""
     x = F.conv2d(x, weights, biases, padding=1)
-    x = F.batch_norm(x, running_mean=None, running_var=None, weight=bn_weights, bias=bn_biases, training=True)
-    x = F.relu(x)
+    if activation == 'relu':
+        x = F.batch_norm(x, running_mean=None, running_var=None, weight=bn_weights, bias=bn_biases, training=True)
+        x = F.relu(x)
+    elif activation == 'selu':
+        x = F.selu(x)
+    else:
+        raise ValueError('Unsupported activation.')
     x = F.max_pool2d(x, kernel_size=2, stride=2)
     return x
 
@@ -64,40 +78,42 @@ def functional_conv_block(x, weights, biases, bn_weights, bn_biases):
 ##########
 # Models #
 ##########
-def get_few_shot_encoder(num_input_channels=1):
+def get_few_shot_encoder(num_input_channels=1, activation: str = 'relu'):
     """Creates a few shot encoder as used in Matching and Prototypical Networks
 
     # Arguments:
         num_input_channels: Number of color channels the model expects input data to contain. Omniglot = 1,
             miniImageNet = 3
+        activation: Whether to use ReLu activation + batchnorm or SELU on its own
     """
     return nn.Sequential(
-        conv_block(num_input_channels, 64),
-        conv_block(64, 64),
-        conv_block(64, 64),
-        conv_block(64, 64),
+        conv_block(num_input_channels, 64, activation),
+        conv_block(64, 64, activation),
+        conv_block(64, 64, activation),
+        conv_block(64, 64, activation),
         Flatten(),
     )
 
 
 class FewShotClassifier(nn.Module):
-    def __init__(self, num_input_channels: int, k_way: int, final_layer_size: int = 64):
+    def __init__(self, num_input_channels: int, k_way: int, final_layer_size: int = 64, activation: str = 'relu'):
         """Creates a few shot classifier as used in MAML.
 
         This network should be identical to the one created by `get_few_shot_encoder` but with a
         clasification layer on top.
 
-            # Arguments:
-                num_input_channels: Number of color channels the model expects input data to contain. Omniglot = 1,
-                    miniImageNet = 3
-                k_way: Number of classes the model will discriminate between
-                final_layer_size: 64 for Omniglot, 1600 for miniImageNet
+        # Arguments:
+            num_input_channels: Number of color channels the model expects input data to contain. Omniglot = 1,
+                miniImageNet = 3
+            k_way: Number of classes the model will discriminate between
+            final_layer_size: 64 for Omniglot, 1600 for miniImageNet
+            activation: Whether to use ReLu activation + batchnorm or SELU on its own
         """
         super(FewShotClassifier, self).__init__()
-        self.conv1 = conv_block(num_input_channels, 64)
-        self.conv2 = conv_block(64, 64)
-        self.conv3 = conv_block(64, 64)
-        self.conv4 = conv_block(64, 64)
+        self.conv1 = conv_block(num_input_channels, 64, activation)
+        self.conv2 = conv_block(64, 64, activation)
+        self.conv3 = conv_block(64, 64, activation)
+        self.conv4 = conv_block(64, 64, activation)
 
         self.logits = nn.Linear(final_layer_size, k_way)
 
@@ -116,7 +132,7 @@ class FewShotClassifier(nn.Module):
 
         for block in [1, 2, 3, 4]:
             x = functional_conv_block(x, weights[f'conv{block}.0.weight'], weights[f'conv{block}.0.bias'],
-                                      weights[f'conv{block}.1.weight'], weights[f'conv{block}.1.bias'])
+                                      weights.get(f'conv{block}.1.weight'), weights.get(f'conv{block}.1.bias'))
 
         x = x.view(x.size(0), -1)
 

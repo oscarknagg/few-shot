@@ -13,6 +13,11 @@ from config import DATA_PATH
 
 class OmniglotDataset(Dataset):
     def __init__(self, subset):
+        """Dataset class representing Omniglot dataset
+
+        # Arguments:
+            subset: Whether the dataset represents the background or evaluation set
+        """
         if subset not in ('background', 'evaluation'):
             raise(ValueError, 'subset must be one of (background, evaluation)')
         self.subset = subset
@@ -49,53 +54,16 @@ class OmniglotDataset(Dataset):
     def num_classes(self):
         return len(self.df['class_name'].unique())
 
-    def build_n_shot_task(self, k, n=1, query=1):
-        """
-        This method builds a k-way n-shot classification task. It returns a support set of n audio samples each from k
-        unique speakers. In addition it will return a query sample. Downstream models will attempt to match the query
-        sample to the correct samples in the support set.
-        :param k: Number of unique speakers to include in this task
-        :param n: Number of audio samples to include from each speaker
-        :param query: Number of query samples
-        :return:
-        """
-        if k >= self.num_classes():
-            raise(ValueError, 'k must be smaller than the number of unique speakers in this dataset!')
-
-        if k <= 1:
-            raise(ValueError, 'k must be greater than or equal to one!')
-
-        query = self.df.sample(query)
-        query_samples = self[query['id'].values[0]]
-        # Add batch dimension
-        query_samples = (query_samples[0][np.newaxis, :, :], query_samples[1])
-
-        is_query_character = self.df['class_id'] == query['class_id'].values[0]
-        not_query_sample = ~self.df.index.isin(query['id'].values)
-        correct_samples = self.df[is_query_character & not_query_sample].sample(n)
-
-        # Sample k-1 speakers
-        other_support_set_characters = np.random.choice(
-            self.df[~is_query_character]['class_id'].unique(), k-1, replace=False)
-
-        other_support_samples = []
-        for i in range(k-1):
-            is_same_speaker = self.df['class_id'] == other_support_set_characters[i]
-            other_support_samples.append(
-                self.df[~is_query_character & is_same_speaker].sample(n)
-            )
-        support_set = pd.concat([correct_samples]+other_support_samples)
-        support_set_samples = tuple(np.stack(i) for i in zip(*[self[i] for i in support_set.index]))
-
-        return query_samples, support_set_samples
-
     @staticmethod
     def index_subset(subset):
-        """
-        Index a subset by looping through all of it's files and recording their speaker ID, filepath and length.
-        :param subset: Name of the subset
-        :return: A list of dicts containing information about all the audio files in a particular subset of the
-        LibriSpeech dataset
+        """Index a subset by looping through all of its files and recording relevant information.
+
+        # Arguments
+            subset: Name of the subset
+
+        # Returns
+            A list of dicts containing information about all the image files in a particular subset of the
+            Omniglot dataset dataset
         """
         images = []
         print('Indexing {}...'.format(subset))
@@ -127,6 +95,11 @@ class OmniglotDataset(Dataset):
 
 class MiniImageNet(Dataset):
     def __init__(self, subset):
+        """Dataset class representing miniImageNet dataset
+
+        # Arguments:
+            subset: Whether the dataset represents the background or evaluation set
+        """
         if subset not in ('background', 'evaluation'):
             raise(ValueError, 'subset must be one of (background, evaluation)')
         self.subset = subset
@@ -168,6 +141,15 @@ class MiniImageNet(Dataset):
 
     @staticmethod
     def index_subset(subset):
+        """Index a subset by looping through all of its files and recording relevant information.
+
+        # Arguments
+            subset: Name of the subset
+
+        # Returns
+            A list of dicts containing information about all the image files in a particular subset of the
+            miniImageNet dataset
+        """
         images = []
         print('Indexing {}...'.format(subset))
         # Quick first pass to find total for tqdm bar
@@ -196,6 +178,16 @@ class MiniImageNet(Dataset):
 
 class DummyDataset(Dataset):
     def __init__(self, samples_per_class=10, n_classes=10, n_features=1):
+        """Dummy dataset for debugging/testing purposes
+
+        A sample from the DummyDataset has (n_features + 1) features. The first feature is the index of the sample
+        in the data and the remaining features are the class index.
+
+        # Arguments
+            samples_per_class: Number of samples per class in the dataset
+            n_classes: Number of distinct classes in the dataset
+            n_features: Number of extra features each sample should have.
+        """
         self.samples_per_class = samples_per_class
         self.n_classes = n_classes
         self.n_features = n_features

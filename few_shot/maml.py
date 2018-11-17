@@ -123,7 +123,7 @@ def meta_gradient_step(model: Module,
         else:
             raise ValueError('Order must be either 1 or 2.')
 
-    return torch.stack(task_losses).mean().item(), torch.cat(task_predictions)
+    return torch.stack(task_losses).mean(), torch.cat(task_predictions)
 
 
 # def apply_meta_update(order: int, meta_model: Module, loss_fn: Loss, optimiser: Optimizer,

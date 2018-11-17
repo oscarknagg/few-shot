@@ -28,7 +28,7 @@ parser.add_argument('--q', default=1, type=int)  # Number of examples per class 
 parser.add_argument('--inner-train-steps', default=1, type=int)
 parser.add_argument('--inner-val-steps', default=3, type=int)
 parser.add_argument('--inner-lr', default=0.4, type=float)
-parser.add_argument('--meta-lr', default=0.005, type=float)
+parser.add_argument('--meta-lr', default=0.001, type=float)
 parser.add_argument('--meta-batch-size', default=32, type=int)
 parser.add_argument('--order', default=1, type=int)
 parser.add_argument('--activation', default='relu', type=str)
@@ -42,7 +42,7 @@ if args.dataset == 'omniglot':
     num_input_channels = 1
     evaluation_meta_batches = 10
 elif args.dataset == 'miniImageNet':
-    n_epochs = 150
+    n_epochs = 200
     dataset_class = MiniImageNet
     fc_layer_size = 1600
     num_input_channels = 3

@@ -105,7 +105,7 @@ class EvaluateFewShot(Callback):
                  n_shot: int,
                  k_way: int,
                  q_queries: int,
-                 taskloader: int,
+                 taskloader: torch.utils.data.DataLoader,
                  prepare_batch: Callable,
                  prefix: str = 'val_',
                  **kwargs):

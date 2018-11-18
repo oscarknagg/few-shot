@@ -15,6 +15,7 @@ from config import PATH
 
 assert torch.cuda.is_available()
 device = torch.device('cuda')
+torch.backends.cudnn.benchmark = True
 
 
 ##############
@@ -32,25 +33,22 @@ parser.add_argument('--meta-lr', default=0.001, type=float)
 parser.add_argument('--meta-batch-size', default=32, type=int)
 parser.add_argument('--order', default=1, type=int)
 parser.add_argument('--activation', default='relu', type=str)
+parser.add_argument('--epochs', default=50, type=int)
+parser.add_argument('--epoch-len', default=100, type=int)
+parser.add_argument('--eval-batches', default=20, type=int)
 
 args = parser.parse_args()
 
 if args.dataset == 'omniglot':
-    n_epochs = 120
     dataset_class = OmniglotDataset
     fc_layer_size = 64
     num_input_channels = 1
-    evaluation_meta_batches = 10
 elif args.dataset == 'miniImageNet':
-    n_epochs = 200
     dataset_class = MiniImageNet
     fc_layer_size = 1600
     num_input_channels = 3
-    evaluation_meta_batches = 20
 else:
     raise(ValueError('Unsupported dataset'))
-
-meta_batches_per_epoch = 100
 
 param_str = f'{args.dataset}_order={args.order}_n={args.n}_k={args.k}_metabatch={args.meta_batch_size}_' \
             f'train_steps={args.inner_train_steps}_val_steps={args.inner_val_steps}_act={args.activation}'
@@ -63,14 +61,14 @@ print(param_str)
 background = dataset_class('background')
 background_taskloader = DataLoader(
     background,
-    batch_sampler=NShotTaskSampler(background, meta_batches_per_epoch, n=args.n, k=args.k, q=args.q,
+    batch_sampler=NShotTaskSampler(background, args.epoch_len, n=args.n, k=args.k, q=args.q,
                                    num_tasks=args.meta_batch_size),
     num_workers=8
 )
 evaluation = dataset_class('evaluation')
 evaluation_taskloader = DataLoader(
     evaluation,
-    batch_sampler=NShotTaskSampler(evaluation, evaluation_meta_batches, n=args.n, k=args.k, q=args.q,
+    batch_sampler=NShotTaskSampler(evaluation, args.eval_batches, n=args.n, k=args.k, q=args.q,
                                    num_tasks=args.meta_batch_size),
     num_workers=8
 )
@@ -80,7 +78,7 @@ evaluation_taskloader = DataLoader(
 # Training #
 ############
 print(f'Training MAML on {args.dataset}...')
-meta_model = FewShotClassifier(num_input_channels, args.k, fc_layer_size).to(device, dtype=torch.double)
+meta_model = FewShotClassifier(num_input_channels, args.k, fc_layer_size, args.activation).to(device, dtype=torch.double)
 meta_optimiser = torch.optim.Adam(meta_model.parameters(), lr=args.meta_lr)
 loss_fn = nn.CrossEntropyLoss().to(device)
 
@@ -104,7 +102,7 @@ def prepare_meta_batch(n, k, q, meta_batch_size):
 callbacks = [
     EvaluateFewShot(
         eval_fn=meta_gradient_step,
-        num_tasks=evaluation_meta_batches,
+        num_tasks=args.eval_batches,
         n_shot=args.n,
         k_way=args.k,
         q_queries=args.q,
@@ -120,7 +118,7 @@ callbacks = [
         filepath=PATH + f'/models/maml/{param_str}.pth',
         monitor=f'val_{args.n}-shot_{args.k}-way_acc'
     ),
-    ReduceLROnPlateau(patience=20, factor=0.5, monitor=f'val_loss'),
+    ReduceLROnPlateau(patience=10, factor=0.5, monitor=f'val_loss'),
     CSVLogger(PATH + f'/logs/maml/{param_str}.csv'),
 ]
 
@@ -129,7 +127,7 @@ fit(
     meta_model,
     meta_optimiser,
     loss_fn,
-    epochs=n_epochs,
+    epochs=args.epochs,
     dataloader=background_taskloader,
     prepare_batch=prepare_meta_batch(args.n, args.k, args.q, args.meta_batch_size),
     callbacks=callbacks,

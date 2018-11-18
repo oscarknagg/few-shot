@@ -83,3 +83,57 @@ class TestDistance(unittest.TestCase):
         distances = pairwise_distances(query, support, 'cosine')
 
         self.assertTrue(torch.isnan(distances).sum() == 0, 'Cosine distances between 0-vectors should not be nan')
+
+
+class TestAutogradGraphRetrieval(unittest.TestCase):
+    def test_retrieval(self):
+        """Create a simple autograd graph and check that the output is what is expected"""
+        x = torch.ones(2, 2, requires_grad=True)
+        y = x + 2
+        # The operation on the next line will create two edges because the y variable is
+        # y variable is used twice.
+        z = y * y
+        out = z.mean()
+
+        nodes, edges = autograd_graph(out)
+
+        # This is quite a brittle test as it will break if the names of the autograd Functions change
+        # TODO: Less brittle test
+
+        expected_nodes = [
+            'MeanBackward1',
+            'ThMulBackward',
+            'AddBackward',
+            'AccumulateGrad',
+        ]
+
+        self.assertEqual(
+            set(expected_nodes),
+            set(n.__class__.__name__ for n in nodes),
+            'autograd_graph() must return all nodes in the autograd graph.'
+        )
+
+        # Check for the existence of the expected edges
+        expected_edges = [
+            ('ThMulBackward', 'MeanBackward1'),  # z = y * y, out = z.mean()
+            ('AddBackward', 'ThMulBackward'),    # y = x + 2, z = y * y
+            ('AccumulateGrad', 'AddBackward'),   # x = torch.ones(2, 2, requires_grad=True), y = x + 2
+        ]
+        for e in edges:
+            self.assertIn(
+                (e[0].__class__.__name__, e[1].__class__.__name__),
+                expected_edges,
+                'autograd_graph() must return all edges in the autograd graph.'
+            )
+
+        # Check for two edges between the AddBackward node and the ThMulBackward node
+        num_y_squared_edges = 0
+        for e in edges:
+            if e[0].__class__.__name__ == 'AddBackward' and e[1].__class__.__name__ == 'ThMulBackward':
+                num_y_squared_edges += 1
+
+        self.assertEqual(
+            num_y_squared_edges,
+            2,
+            'autograd_graph() must return multiple edges between nodes if they exist.'
+        )

@@ -2,7 +2,7 @@ import torch
 import os
 import shutil
 
-from config import EPSILON
+from config import EPSILON, PATH
 
 
 def mkdir(dir):
@@ -27,6 +27,16 @@ def rmdir(dir):
         shutil.rmtree(dir)
     except:
         pass
+
+
+def setup_dirs():
+    """Creates directories for this project."""
+    mkdir(PATH + '/logs/')
+    mkdir(PATH + '/logs/proto_nets')
+    mkdir(PATH + '/logs/matching_nets')
+    mkdir(PATH + '/models/')
+    mkdir(PATH + '/models/proto_nets')
+    mkdir(PATH + '/models/matching_nets')
 
 
 def pairwise_distances(x: torch.Tensor,

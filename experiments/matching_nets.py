@@ -12,9 +12,11 @@ from few_shot.core import NShotTaskSampler, prepare_nshot_task, EvaluateFewShot
 from few_shot.matching import matching_net_episode
 from few_shot.train import fit
 from few_shot.callbacks import *
+from few_shot.utils import setup_dirs
 from config import PATH
 
 
+setup_dirs()
 assert torch.cuda.is_available()
 device = torch.device('cuda')
 torch.backends.cudnn.benchmark = True

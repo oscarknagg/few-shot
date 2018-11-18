@@ -108,8 +108,8 @@ def autograd_graph(tensor: torch.Tensor) -> Tuple[
         tensor: The Tensor to retrieve the autograd graph for
 
     # Returns
-        nodes: Set of torch.autograd.Functions that are the nodes of the autograd graph
-        edges: Set of (Function, Function) tuples that are the edges between the nodes of the autograd graph
+        nodes: List of torch.autograd.Functions that are the nodes of the autograd graph
+        edges: List of (Function, Function) tuples that are the edges between the nodes of the autograd graph
     """
     nodes, edges = list(), list()
 

@@ -2,7 +2,7 @@ import torch
 from collections import OrderedDict
 from torch.optim import Optimizer
 from torch.nn import Module
-from typing import Dict, List, Callable
+from typing import Dict, List, Callable, Union
 
 from few_shot.core import create_nshot_task_label
 
@@ -26,7 +26,7 @@ def meta_gradient_step(model: Module,
                        inner_train_steps: int,
                        inner_lr: float,
                        train: bool,
-                       device: torch.device):
+                       device: Union[str, torch.device]):
     """
     Perform a gradient step on a meta-learner.
 

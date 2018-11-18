@@ -1,6 +1,7 @@
 import torch
 import os
 import shutil
+from typing import Tuple, Set
 
 from config import EPSILON, PATH
 
@@ -95,3 +96,41 @@ def copy_weights(from_model: torch.nn.Module, to_model: torch.nn.Module):
             m_to.weight.data = m_from.weight.data.clone()
             if m_to.bias is not None:
                 m_to.bias.data = m_from.bias.data.clone()
+
+
+def autograd_graph(tensor: torch.Tensor) -> Tuple[
+            Set[torch.autograd.Function],
+            Set[Tuple[torch.autograd.Function, torch.autograd.Function]]
+        ]:
+    """Recursively retrieves the autograd graph for a particular tensor.
+
+    # Arguments
+        tensor: The Tensor to retrieve the autograd graph for
+
+    # Returns
+        nodes: Set of torch.autograd.Functions that are the nodes of the autograd graph
+        edges: Set of (Function, Function) tuples that are the edges between the nodes of the autograd graph
+    """
+    nodes = set()
+    edges = set()
+
+    def _add_nodes(tensor):
+        if tensor not in nodes:
+            print(type(tensor), tensor)
+
+            nodes.add(tensor)
+
+            if hasattr(tensor, 'next_functions'):
+                for f in tensor.next_functions:
+                    if f[0] is not None:
+                        edges.add((f[0], tensor))
+                        _add_nodes(f[0])
+
+            if hasattr(tensor, 'saved_tensors'):
+                for t in tensor.saved_tensors:
+                    edges.add((t, tensor))
+                    _add_nodes(t)
+
+    _add_nodes(tensor.grad_fn)
+
+    return nodes, edges

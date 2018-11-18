@@ -34,7 +34,6 @@ parser.add_argument('--inner-lr', default=0.4, type=float)
 parser.add_argument('--meta-lr', default=0.001, type=float)
 parser.add_argument('--meta-batch-size', default=32, type=int)
 parser.add_argument('--order', default=1, type=int)
-parser.add_argument('--activation', default='relu', type=str)
 parser.add_argument('--epochs', default=50, type=int)
 parser.add_argument('--epoch-len', default=100, type=int)
 parser.add_argument('--eval-batches', default=20, type=int)
@@ -53,7 +52,7 @@ else:
     raise(ValueError('Unsupported dataset'))
 
 param_str = f'{args.dataset}_order={args.order}_n={args.n}_k={args.k}_metabatch={args.meta_batch_size}_' \
-            f'train_steps={args.inner_train_steps}_val_steps={args.inner_val_steps}_act={args.activation}'
+            f'train_steps={args.inner_train_steps}_val_steps={args.inner_val_steps}'
 print(param_str)
 
 
@@ -80,7 +79,7 @@ evaluation_taskloader = DataLoader(
 # Training #
 ############
 print(f'Training MAML on {args.dataset}...')
-meta_model = FewShotClassifier(num_input_channels, args.k, fc_layer_size, args.activation).to(device, dtype=torch.double)
+meta_model = FewShotClassifier(num_input_channels, args.k, fc_layer_size).to(device, dtype=torch.double)
 meta_optimiser = torch.optim.Adam(meta_model.parameters(), lr=args.meta_lr)
 loss_fn = nn.CrossEntropyLoss().to(device)
 

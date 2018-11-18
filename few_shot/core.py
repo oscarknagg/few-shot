@@ -132,13 +132,22 @@ class EvaluateFewShot(Callback):
         for batch_index, batch in enumerate(self.taskloader):
             x, y = self.prepare_batch(batch)
 
-            loss, y_pred = self.eval_fn(self.model, self.optimiser, self.loss_fn, x, y,
-                                        n_shot=self.n_shot, k_way=self.k_way, q_queries=self.q_queries,
-                                        train=False, **self.kwargs)
+            loss, y_pred = self.eval_fn(
+                self.model,
+                self.optimiser,
+                self.loss_fn,
+                x,
+                y,
+                n_shot=self.n_shot,
+                k_way=self.k_way,
+                q_queries=self.q_queries,
+                train=False,
+                **self.kwargs
+            )
 
             seen += y_pred.shape[0]
 
-            totals['loss'] += loss * y_pred.shape[0]
+            totals['loss'] += loss.item() * y_pred.shape[0]
             totals[self.metric_name] += categorical_accuracy(y, y_pred) * y_pred.shape[0]
 
         logs[self.prefix + 'loss'] = totals['loss'] / seen

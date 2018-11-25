@@ -1,7 +1,7 @@
 # Few-shot learning
 
-The aim for this repository is to contain clean, readable code to
-reproduce few-shot learning research.
+The aim for this repository is to contain clean, readable and tested
+code to reproduce few-shot learning research.
 
 This project is written in python 3.6 and Pytorch.
 
@@ -13,7 +13,7 @@ This project is written in python 3.6 and Pytorch.
 - [x] Reproduce MAML to a few % on miniImageNet
 - [x] Implement 2nd order MAML
 - [ ] Upload pretrained models
-- [ ] Clean up code
+- [x] Clean up code
 - [ ] Prettify README
 - [ ] Write blog post
 
@@ -112,8 +112,8 @@ brackets indicates 1st or 2nd order MAML.
 | **k-way**        | **5**    |**5**|**20**|**20**|
 | **n-shot**       | **1**    |**5**|**1** |**5** |
 | Published        | 98.7     |99.9 |95.8  |98.9  |
-| This Repo (1)    | 94.6     |99.5 |92.2  |97.7  |
-| This Repo (2)    | 95.5     |99.3 |92.1  |97.4  |
+| This Repo (1)    | 95.5     |99.5 |92.2  |97.7  |
+| This Repo (2)    | 98.1     |99.8 |91.6  |95.9  |
 
 |                  | miniImageNet|     |
 |------------------|-------------|-----|
@@ -121,4 +121,4 @@ brackets indicates 1st or 2nd order MAML.
 | **n-shot**       | **1**       |**5**|
 | Published        | 48.1        |63.2 |
 | This Repo (1)    | 46.4        |63.3 |
-| This Repo (2)    | 45.8        |64.0 |
+| This Repo (2)    | 47.5        |64.7 |

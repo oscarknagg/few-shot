@@ -1,9 +1,7 @@
 """
 Reproduce Matching Network results of Vinyals et al
 """
-import torch
 import argparse
-from torch import nn
 from torch.utils.data import DataLoader
 from torch.optim import Adam
 

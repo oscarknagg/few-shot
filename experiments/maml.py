@@ -1,11 +1,12 @@
-import torch
+"""
+Reproduce Model-agnostic Meta-learning results (supervised only) of Finn et al
+"""
 from torch.utils.data import DataLoader
 from torch import nn
-import torch.nn.functional as F
 import argparse
 
 from few_shot.datasets import OmniglotDataset, MiniImageNet
-from few_shot.core import NShotTaskSampler, create_nshot_task_label, prepare_nshot_task, EvaluateFewShot
+from few_shot.core import NShotTaskSampler, create_nshot_task_label, EvaluateFewShot
 from few_shot.maml import meta_gradient_step
 from few_shot.models import FewShotClassifier
 from few_shot.train import fit

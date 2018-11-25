@@ -5,17 +5,8 @@ code to reproduce few-shot learning research.
 
 This project is written in python 3.6 and Pytorch.
 
-- [x] Reproduce Prototypical Networks to a few % on Omniglot
-- [x] Reproduce Prototypical Networks to a few % on miniImageNet
-- [x] Reproduce Matching Networks to a few % on Omniglot
-- [x] Reproduce Matching Networks to a few % on miniImageNet
-- [x] Reproduce MAML to a few % on Omniglot
-- [x] Reproduce MAML to a few % on miniImageNet
-- [x] Implement 2nd order MAML
 - [ ] Upload pretrained models
-- [x] Clean up code
-- [ ] Prettify README
-- [ ] Write blog post
+- [ ] Device swapping
 
 # Setup
 ### Requirements
@@ -54,11 +45,30 @@ After adding the datasets run `pytest` in the root directory to run
 all tests.
 
 # Results
+
+The file `experiments/experiments.txt` contains the hyperparameters I
+used to obtain the results given below.
+
 ### Prototypical Networks
+
+![Prototypical Networks](https://github.com/oscarknagg/few-shot/blob/master/assets/proto_nets_diagram.png)
+
 
 Run `experiments/proto_nets.py` to reproduce results from [Prototpyical
 Networks for Few-shot Learning](https://arxiv.org/pdf/1703.05175.pdf)
 (Snell et al).
+
+**Arguments**
+- dataset: {'omniglot', 'miniImageNet'}. Whether to use the Omniglot
+    or miniImagenet dataset
+- distance: {'l2', 'cosine'}. Which distance metric to use
+- n-train: Support samples per class for training tasks
+- n-test: Support samples per class for validation tasks
+- k-train: Number of classes in training tasks
+- k-test: Number of classes in validation tasks
+- q-train: Query samples per class for training tasks
+- q-test: Query samples per class for validation tasks
+
 
 |                  | Omniglot |     |      |      |
 |------------------|----------|-----|------|------|
@@ -76,9 +86,29 @@ Networks for Few-shot Learning](https://arxiv.org/pdf/1703.05175.pdf)
 
 ### Matching Networks
 
+A differentiable nearest neighbours classifier.
+
+![Matching Networks](https://github.com/oscarknagg/few-shot/blob/master/assets/matching_nets_diagram.png)
+
 Run `experiments/matching_nets.py` to reproduce results from [Matching
 Networks for One Shot Learning](https://arxiv.org/pdf/1606.04080.pdf)
-(Vinayls et al).
+(Vinyals et al).
+
+**Arguments**
+- dataset: {'omniglot', 'miniImageNet'}. Whether to use the Omniglot
+    or miniImagenet dataset
+- distance: {'l2', 'cosine'}. Which distance metric to use
+- n-train: Support samples per class for training tasks
+- n-test: Support samples per class for validation tasks
+- k-train: Number of classes in training tasks
+- k-test: Number of classes in validation tasks
+- q-train: Query samples per class for training tasks
+- q-test: Query samples per class for validation tasks
+- fce: Whether (True) or not (False) to use full context embeddings (FCE)
+- lstm-layers: Number of LSTM layers to use in the support set
+    FCE
+- unrolling-steps: Number of unrolling steps to use when calculating FCE
+    of the query sample
 
 I had trouble reproducing the results of this paper using the cosine
 distance metric as I found the converge to be slow and final performance
@@ -104,8 +134,40 @@ metric.
 
 ### Model-Agnostic Meta-Learning (MAML)
 
-Max Pooling instead of strided conv as paper specifies. Number in
+![MAML](https://github.com/oscarknagg/few-shot/blob/master/assets/maml_diagram.png)
+
+I used max pooling instead of strided convolutions in order to be
+consistent with the other papers. Number in
 brackets indicates 1st or 2nd order MAML.
+
+Run `experiments/maml.py` to reproduce results from [Model-Agnostic
+Meta-Learning](https://arxiv.org/pdf/1703.03400.pdf)
+(Finn et al).
+
+**Arguments**
+- dataset: {'omniglot', 'miniImageNet'}. Whether to use the Omniglot
+    or miniImagenet dataset
+- distance: {'l2', 'cosine'}. Which distance metric to use
+- n: Support samples per class for few-shot tasks
+- k: Number of classes in training tasks
+- q: Query samples per class for training tasks
+- inner-train-steps: Number of inner-loop updates to perform on training
+    tasks
+- inner-val-steps: Number of inner-loop updates to perform on validation
+    tasks
+- inner-lr: Learning rate to use for inner-loop updates
+- meta-lr: Learning rate to use when updating the meta-learner weights
+- meta-batch-size: Number of tasks per meta-batch
+- order: Whether to use 1st or 2nd order MAML
+- epochs: Number of training epochs
+- epoch-len: Meta-batches per epoch
+- eval-batches: Number of meta-batches to use when evaluating the model
+    after each epoch
+
+
+NB: For MAML n, k and q are fixed between train and test. You may need
+to adjust meta-batch-size to fit your GPU. 2nd order MAML uses a _lot_
+more memory.
 
 |                  | Omniglot |     |      |      |
 |------------------|----------|-----|------|------|

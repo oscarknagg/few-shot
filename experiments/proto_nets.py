@@ -1,7 +1,6 @@
 """
 Reproduce Omniglot results of Snell et al Prototypical networks.
 """
-import torch
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 import argparse

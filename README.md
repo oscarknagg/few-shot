@@ -3,10 +3,12 @@
 The aim for this repository is to contain clean, readable and tested
 code to reproduce few-shot learning research.
 
-This project is written in python 3.6 and Pytorch.
+This project is written in python 3.6 and Pytorch and assumes you have
+a GPU.
 
-- [ ] Upload pretrained models
-- [ ] Device swapping
+See these Medium articles for some more information
+1. [Theory and concepts](https://towardsdatascience.com/advances-in-few-shot-learning-a-guided-tour-36bc10a68b77)
+2. [Discussion of implementation details](https://towardsdatascience.com/advances-in-few-shot-learning-reproducing-results-in-pytorch-aba70dee541d)
 
 # Setup
 ### Requirements
@@ -137,8 +139,8 @@ metric.
 ![MAML](https://github.com/oscarknagg/few-shot/blob/master/assets/maml_diagram.png)
 
 I used max pooling instead of strided convolutions in order to be
-consistent with the other papers. Number in
-brackets indicates 1st or 2nd order MAML.
+consistent with the other papers. The miniImageNet experiments using
+2nd order MAML took me over a day to run.
 
 Run `experiments/maml.py` to reproduce results from [Model-Agnostic
 Meta-Learning](https://arxiv.org/pdf/1703.03400.pdf)
@@ -184,3 +186,5 @@ more memory.
 | Published        | 48.1        |63.2 |
 | This Repo (1)    | 46.4        |63.3 |
 | This Repo (2)    | 47.5        |64.7 |
+
+Number in brackets indicates 1st or 2nd order MAML.

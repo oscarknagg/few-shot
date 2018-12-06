@@ -53,7 +53,7 @@ def matching_net_episode(model: Module,
     # k lots of n support samples from a particular class
     # k lots of q query samples from those classes
     support = embeddings[:n_shot * k_way]
-    queries = embeddings[n_shot * q_queries:]
+    queries = embeddings[n_shot * k_way:]
 
     # Optionally apply full context embeddings
     if fce:

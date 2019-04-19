@@ -102,8 +102,8 @@ class TestAutogradGraphRetrieval(unittest.TestCase):
 
         expected_nodes = [
             'MeanBackward1',
-            'ThMulBackward',
-            'AddBackward',
+            'MulBackward0',
+            'AddBackward0',
             'AccumulateGrad',
         ]
 
@@ -115,9 +115,9 @@ class TestAutogradGraphRetrieval(unittest.TestCase):
 
         # Check for the existence of the expected edges
         expected_edges = [
-            ('ThMulBackward', 'MeanBackward1'),  # z = y * y, out = z.mean()
-            ('AddBackward', 'ThMulBackward'),    # y = x + 2, z = y * y
-            ('AccumulateGrad', 'AddBackward'),   # x = torch.ones(2, 2, requires_grad=True), y = x + 2
+            ('MulBackward0', 'MeanBackward1'),  # z = y * y, out = z.mean()
+            ('AddBackward0', 'MulBackward0'),    # y = x + 2, z = y * y
+            ('AccumulateGrad', 'AddBackward0'),   # x = torch.ones(2, 2, requires_grad=True), y = x + 2
         ]
         for e in edges:
             self.assertIn(
@@ -129,7 +129,7 @@ class TestAutogradGraphRetrieval(unittest.TestCase):
         # Check for two edges between the AddBackward node and the ThMulBackward node
         num_y_squared_edges = 0
         for e in edges:
-            if e[0].__class__.__name__ == 'AddBackward' and e[1].__class__.__name__ == 'ThMulBackward':
+            if e[0].__class__.__name__ == 'AddBackward0' and e[1].__class__.__name__ == 'MulBackward0':
                 num_y_squared_edges += 1
 
         self.assertEqual(

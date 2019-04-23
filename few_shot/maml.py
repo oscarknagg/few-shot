@@ -81,7 +81,6 @@ def meta_gradient_step(model: Module,
         y = create_nshot_task_label(k_way, q_queries).to(device)
         logits = model.functional_forward(x_task_val, fast_weights)
         loss = loss_fn(logits, y)
-        loss.backward(retain_graph=True)
 
         # Get post-update accuracies
         y_pred = logits.softmax(dim=1)
@@ -89,9 +88,11 @@ def meta_gradient_step(model: Module,
 
         # Accumulate losses and gradients
         task_losses.append(loss)
-        gradients = torch.autograd.grad(loss, fast_weights.values(), create_graph=create_graph)
-        named_grads = {name: g for ((name, _), g) in zip(fast_weights.items(), gradients)}
-        task_gradients.append(named_grads)
+
+        if order == 1:
+            gradients = torch.autograd.grad(loss, fast_weights.values(), create_graph=create_graph)
+            named_grads = {name: g for ((name, _), g) in zip(fast_weights.items(), gradients)}
+            task_gradients.append(named_grads)
 
     if order == 1:
         if train:
